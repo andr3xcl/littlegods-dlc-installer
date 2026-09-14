@@ -1,0 +1,2521 @@
+# ============================================================
+#  ZOMBIES DECLASSIFIED - INSTALLER (v2.0.0 Detailed & Auto-Detect)
+# ============================================================
+#Requires -Version 5.1
+
+if ($env:ZOMBIES_DECLASSIFIED_BYPASS -ne '1') {
+    $env:ZOMBIES_DECLASSIFIED_BYPASS = '1'
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    exit $LASTEXITCODE
+}
+
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+} catch { }
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$script:AppVersion = '2.0.0'
+$script:Language = 'EN'
+$script:Root = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
+$script:StorageSource = Join-Path $script:Root 'storage\t6'
+$script:GameSource = Join-Path $script:Root 'steam'
+$script:PlutoniumStorage = Join-Path $env:LOCALAPPDATA 'Plutonium\storage\t6'
+$script:MediaFireUrl = 'https://www.mediafire.com/file/8iy5epno648ja76/Copy+of+ZombiesDeclassified_BETA1+(1-002.zip/file'
+$text = @{
+    ES = @{
+        Title                 = 'Littlegods Tool DLC5'
+        AppTitle              = 'Littlegods Tool DLC5'
+        Subtitle              = 'ZOMBIES DECLASSIFIED - INSTALADOR'
+        AuthorText            = 'Programa: andr3x_cl'
+        About                 = 'Informacion del Mod y Creditos'
+        ModDescTitle          = 'Zombies Declassified'
+        ModDescText           = @"
+Zombies Declassified es un port para PC en desarrollo del DLC 5 no lanzado de Black Ops 2.
+Los mapas han sido portados, pulidos y corregidos para brindar una experiencia lo mas cercana posible a un lanzamiento oficial, como si Treyarch los hubiera completado.
+Este mod es compatible con Plutonium (https://plutonium.pw/), con soporte completo para un jugador y multijugador.
+"@
+        ProgressTitle         = 'Progreso Actual:'
+        MapHeader             = 'Mapa'
+        CompletionHeader      = 'Completado'
+        ReleaseDatesTitle     = 'Fechas de Lanzamiento:'
+        ReleaseDate1          = '31 de Agosto: BETA 1 disponible - los nueve mapas del DLC 5. Descargalo desde Releases (https://github.com/andr3xcl/littlegods-dlc-installer/releases).'
+        ReleaseDate2          = 'Finales de Septiembre: Lanzamiento final con soporte Solo EE, Grief, Call of the Dead y codigo fuente completo.'
+        ReqsTitle             = 'Requisitos de Instalacion:'
+        ReqsText              = 'Se requiere la version completa de Steam de Black Ops II (https://store.steampowered.com/app/202970/) con todos los DLC, y el cliente Plutonium (https://plutonium.pw/).'
+        RepoAboutTitle        = 'Acerca de este repositorio:'
+        RepoAboutText         = @"
+Este repositorio contiene unicamente el codigo y documentacion propios del proyecto.
+No contiene archivos del juego, archivos filtrados ni nada extraido de ellos.
+Por favor, no preguntes ni compartas la build filtrada en ningun sitio.
+"@
+        BugsTitle             = 'Errores y Comentarios:'
+        BugsIssues            = 'Issues de GitHub: https://github.com/andr3xcl/littlegods-dlc-installer/issues'
+        BugsDiscord           = 'Discord de CodModding: https://discord.gg/wWGNqUEg9'
+        CreditsTitle          = 'CREDITOS DEL PROGRAMA'
+        CreditsModAuthor      = 'Autor del Mod:'
+        CreditsProgramAuthor  = 'Autor Programa:'
+        CreditsGitHub         = 'GitHub:'
+        CreditsCommunity      = 'Comunidad:'
+        CreditsDiscord        = 'Discord:'
+        Download              = 'Descargar paquete desde MediaFire'
+        DownloadAsk           = 'El archivo pesa aproximadamente 8.54 GB. Descargar ahora?'
+        DownloadInfo          = @"
+NOTA SOBRE EL ESPACIO EN DISCO (Se requieren ~20 GB libres):
+  1. Primero se descarga el archivo ZIP (~8.54 GB) en la carpeta TEMP.
+  2. Luego se descomprimen los archivos (~8.54 GB) en TEMP al mismo tiempo (coexisten el ZIP y los datos extraidos).
+  3. Al terminar, el paquete se mueve al Escritorio y los archivos temporales de TEMP se eliminan automaticamente.
+"@
+        DownloadZip           = 'ZIP'
+        DownloadExtract       = 'Carpeta extraida'
+        Downloading           = 'Iniciando descarga del paquete...'
+        DownloadMethod        = 'Usando descarga rapida y reanudable de Windows (BITS)...'
+        DownloadStreamMethod  = 'Usando descarga directa de alta velocidad con indicador de progreso...'
+        FallbackStream        = 'BITS no disponible o con error, cambiando a descarga directa...'
+        DownloadingZip        = 'Descargando archivo ZIP desde MediaFire...'
+        ZipDownloaded         = 'Descarga del archivo ZIP completada.'
+        Extracting            = 'Descomprimiendo archivo ZIP (esto puede tomar unos minutos)...'
+        ExtractDone           = 'Descompresion completada con exito.'
+        FindingPackage        = 'Buscando estructura del paquete en la carpeta extraida...'
+        PackageFound          = 'Estructura del paquete validada correctamente.'
+        MovingToDesktop       = 'Moviendo paquete de Zombies Declassified al Escritorio...'
+        MovedToDesktop        = 'Paquete guardado en el Escritorio:'
+        DeletingZipTemp       = 'Eliminando archivo temporal ZIP...'
+        DeletingExtTemp       = 'Eliminando carpeta temporal de extraccion...'
+        TempCleanupDone       = 'Archivos temporales eliminados correctamente.'
+        PackageAutoFound      = 'Paquete detectado automaticamente en:'
+        PackageNotFound       = 'No se encontro el paquete automaticamente en el Escritorio. Por favor seleccionalo manualmente.'
+        Cleanup               = 'Limpiar temporales del instalador'
+        CleanupInfo           = 'Solo se borraran el ZIP descargado y la carpeta extraida.'
+        CleanupAsk            = 'Quieres borrar estos archivos?'
+        CleanupNone           = 'No hay temporales del instalador para borrar.'
+        CleanupDone           = 'Temporales borrados correctamente.'
+        DownloadDone          = 'Paquete descargado, preparado y listo para instalar.'
+        DownloadError         = 'Error durante la descarga o preparacion del paquete:'
+        NoSpace               = 'Espacio en disco insuficiente en TEMP. Se necesitan al menos 20 GB libres porque se descarga el ZIP (~8.54 GB) y se descomprime (~8.54 GB) simultaneamente antes de moverse al Escritorio.'
+        Steam                 = 'Instalar en Steam'
+        SteamStatus           = 'Steam detectado'
+        SteamNotFound         = 'Steam o Black Ops II no fueron encontrados automaticamente.'
+        SteamNoGame           = 'Steam esta instalado, pero Black Ops II no fue encontrado.'
+        SteamDisabled         = 'No disponible: Steam no esta instalado'
+        Pirate                = 'Instalar version alternativa'
+        Verify                = 'Verificar archivos'
+        Language              = 'Cambiar idioma'
+        Exit                  = 'Salir'
+        Select                = 'Selecciona una opcion'
+        Package               = 'Selecciona la carpeta ZombiesDeclassified_BETA1'
+        PackageHelp           = 'Debe contener las carpetas storage y steam.'
+        Game                  = 'Selecciona la carpeta pluto_t6_full_game'
+        GameHelp              = 'Es la carpeta donde estan instalados los archivos del juego alternativo.'
+        BaseGame              = 'Selecciona la carpeta donde esta instalado Black Ops II'
+        BaseGameHelp          = 'Es la carpeta principal del juego, donde existen las carpetas zone y sound.'
+        Cancel                = 'No se selecciono ninguna carpeta.'
+        InvalidPackage        = 'Por favor, esta carpeta no es ZombiesDeclassified. Elige la correcta.'
+        InvalidGame           = 'La carpeta debe llamarse exactamente pluto_t6_full_game.'
+        None                  = 'No tienes ninguna instalacion detectada.'
+        Already               = 'Esta instalacion ya esta instalada.'
+        RepairAsk             = 'Quieres verificarla y reparar archivos faltantes o danados?'
+        Preparing             = 'Preparando instalacion...'
+        Copying               = 'Copiando archivos a'
+        Complete              = 'Instalacion terminada.'
+        Verifying             = 'Verificando'
+        VerifyComplete        = 'Verificacion terminada.'
+        AllGood               = 'Todos los archivos estan completos.'
+        Problems              = 'Faltan o son diferentes'
+        NoFiles               = 'No hay archivos de origen para revisar.'
+        NoSource              = 'Los archivos fuente no se encuentran. Selecciona el paquete primero.'
+        LanguageName          = 'Espanol'
+        Pause                 = 'Pulsa Enter para continuar'
+        ExitAsk               = 'Quieres cerrar el instalador?'
+        Interrupt             = 'Se intento cerrar el programa. Elige si quieres salir.'
+        InvalidOption         = 'Opcion no valida. Por favor elige un numero del menu.'
+        ProcessConflictTitle  = 'PROCESO EN EJECUCION DETECTADO'
+        ProcessConflictInfo   = 'Los siguientes programas estan usando los archivos del juego y bloquean la copia:'
+        ProcessConflictAction = '[R] Reintentar | [C] Cerrar procesos automaticamente | [M] Cancelar y volver al menu'
+        ProcessCloseDone      = 'Procesos cerrados correctamente.'
+        ProcessCopyFailed     = 'No se pudo completar la copia porque un archivo esta bloqueado por otro programa.'
+        CopyCancelled         = 'Operacion de copia cancelada por el usuario.'
+        MediaFireLinkHeader   = 'Enlace oficial de descarga de MediaFire:'
+        DownloadOptionsPrompt = '[1] Iniciar descarga y preparacion automatica | [2] Volver al menu principal'
+        PackageMissingPrompt  = @"
+[1] Buscar y seleccionar la carpeta manualmente en el explorador
+[2] Descargar el paquete automaticamente desde MediaFire
+[3] Volver al menu principal
+"@
+        ReturningToMenu       = 'Volviendo al menu principal...'
+        CancelFolderReturn    = 'No se selecciono ninguna carpeta. Volviendo al menu...'
+        YesKey                = 'S'
+        Step1Prep             = '[PASO 1/6] Preparando entorno de descarga...'
+        Step2Link             = '[PASO 2/6] Resolviendo enlace de descarga...'
+        ConnectingMF          = ' -> Conectando con MediaFire...'
+        LinkOK                = ' -> Enlace directo obtenido con exito.'
+        ZipSizeLabel          = 'Tamano'
+        Step3Extract          = '[PASO 3/6]'
+        ExtractDest           = ' -> Destino temporal:'
+        Step4Check            = '[PASO 4/6]'
+        Step5Move             = '[PASO 5/6]'
+        MoveDest              = ' -> Destino:'
+        ReplacingPrev         = ' -> Reemplazando instalacion previa en Escritorio...'
+        Step6Cleanup          = '[PASO 6/6] Limpiando archivos temporales...'
+        FolderLabel           = ' Carpeta:'
+        CleanupOnError        = ' -> Limpiando temporales debido a error...'
+        FreeDiskLabel         = 'Espacio libre en disco'
+        ClosingProcs          = 'Cerrando procesos...'
+        InvalidOptionShort    = 'Opcion no valida.'
+        OptionPromptRCM       = 'Opcion [R/C/M]'
+        OptionPromptRM        = 'Opcion [R/M]'
+        CopyErrorLabel        = 'ERROR EN COPIA'
+        CopyingStorageTo      = ' -> Copiando storage/t6 a'
+        CopyingGameTo         = ' -> Copiando archivos del juego a'
+        PackageDetectedMenu   = 'Paquete detectado:'
+        PackageNotDetMenu     = 'Paquete: No detectado en Escritorio'
+        LangMenuHeader        = 'SELECCIONAR IDIOMA'
+        Uninstall             = 'Desinstalar DLC 5'
+        UninstallTitle        = 'DESINSTALADOR - ZOMBIES DECLASSIFIED DLC 5'
+        UninstallCheckTitle   = 'Comprobando instalaciones en el sistema...'
+        UninstallFoundPlut    = 'Instalacion Plutonium detectada:'
+        UninstallFoundGame    = 'Instalacion en juego detectada:'
+        UninstallNone         = 'No se encontro ninguna instalacion del DLC 5 en el sistema.'
+        UninstallAskPlut      = 'Eliminar archivos del DLC 5 de la carpeta Plutonium?'
+        UninstallAskGame      = 'Eliminar archivos del DLC 5 de la carpeta del juego?'
+        UninstallDeleting     = ' -> Eliminando:'
+        UninstallDoneFile     = ' -> Archivo eliminado:'
+        UninstallDoneDir      = ' -> Carpeta eliminada:'
+        UninstallComplete     = 'Desinstalacion completada. Los archivos del DLC 5 han sido eliminados.'
+        UninstallCancelled    = 'Desinstalacion cancelada. No se elimino nada.'
+        UninstallError        = 'Error al eliminar:'
+        UninstallSkip         = 'Omitido (no encontrado):'
+        UninstallAskManualGame = 'Deseas buscar la carpeta del juego manualmente (Steam / pluto_t6_full_game)?'
+        UninstallNoGameFiles  = 'No se encontraron archivos del DLC 5 en la carpeta seleccionada.'
+        UninstallModFilesFound = 'Archivos del DLC 5 encontrados:'
+        WizardWelcome          = 'ASISTENTE DE INSTALACION - ZOMBIES DECLASSIFIED DLC 5'
+        WizardStepGame         = '[PASO 1] Seleccion de version del juego'
+        WizardGameModePrompt   = 'Que version de Black Ops II tienes?'
+        WizardOptionSteam      = 'Steam (Original)'
+        WizardOptionAlt        = 'Alternativo (pluto_t6_full_game / Otra)'
+        WizardSteamAutoFound   = 'Black Ops II detectado en Steam:'
+        WizardSteamNotFound    = 'No se encontro Black Ops II en las rutas habituales de Steam.'
+        WizardSteamAskManual   = 'Deseas buscar y seleccionar la carpeta de Black Ops II manualmente?'
+        WizardAltFolderPrompt  = 'Selecciona la carpeta donde tienes instalado el juego (ej. pluto_t6_full_game):'
+        WizardStepStatus       = '[PASO 2] Comprobacion del sistema'
+        WizardStatusPlutMod    = 'Plutonium (storage\t6):'
+        WizardStatusGameMod    = 'Carpeta del juego:'
+        WizardStatusInstalled  = 'MOD INSTALADO'
+        WizardStatusNotInst    = 'NO INSTALADO'
+        WizardStatusPkg        = 'Paquete Zombies Declassified:'
+        WizardPkgDetected      = 'Detectado en:'
+        WizardPkgNotDetected   = 'No encontrado en el Escritorio'
+        WizardStepPackage      = '[PASO 3] Paquete del Mod'
+        WizardPkgPrompt        = 'Tienes el paquete de Zombies Declassified descargado o deseas descargarlo ahora?'
+        WizardPkgOptDownload   = 'Descargar automaticamente desde MediaFire (~8.54 GB)'
+        WizardPkgOptSelect     = 'Ya lo tengo descargado, seleccionar carpeta en el explorador'
+        WizardStepAction       = '[PASO 4] Instalacion y Gestion'
+        WizardActionAskInstall = 'Deseas instalar Zombies Declassified DLC 5 ahora?'
+        WizardActionAlready    = 'El mod ya esta instalado en tu equipo. Que accion deseas realizar?'
+        WizardActionRepair     = 'Reparar / Reinstalar archivos (copia paso a paso)'
+        WizardActionUninstall  = 'Desinstalar mod completamente'
+        WizardActionVerify     = 'Verificar integridad de archivos'
+        WizardActionExit       = 'Salir'
+        WizardFinishedTitle    = 'OPERACION FINALIZADA'
+        WizardRunAgainAsk      = 'Deseas realizar otra operacion o volver al inicio?'
+    }
+    EN = @{
+        Title                 = 'Littlegods Tool DLC5'
+        AppTitle              = 'Littlegods Tool DLC5'
+        Subtitle              = 'ZOMBIES DECLASSIFIED - INSTALLER'
+        AuthorText            = 'Program: andr3x_cl'
+        About                 = 'Mod Info & Credits'
+        ModDescTitle          = 'Zombies Declassified'
+        ModDescText           = @"
+Zombies Declassified is a work in progress PC port of Black Ops 2's unreleased DLC 5.
+The maps are ported, polished, and bug fixed to provide as close to an official release experience as possible, as if Treyarch had seen them through to completion.
+This is a mod compatible with Plutonium (https://plutonium.pw/), with full singleplayer and multiplayer support.
+"@
+        ProgressTitle         = 'Current Progress:'
+        MapHeader             = 'Map'
+        CompletionHeader      = 'Completion'
+        ReleaseDatesTitle     = 'Release Dates:'
+        ReleaseDate1          = 'August 31: BETA 1 is out - all nine DLC 5 maps. Grab it from Releases (https://github.com/andr3xcl/littlegods-dlc-installer/releases).'
+        ReleaseDate2          = 'Late September: the final release, with full Solo EE support, Grief, Call of the Dead, and the full project source.'
+        ReqsTitle             = 'Installation Requirements:'
+        ReqsText              = 'You will need the full Steam release of Black Ops II (https://store.steampowered.com/app/202970/) with all DLC, and the Plutonium client (https://plutonium.pw/).'
+        RepoAboutTitle        = 'About this repository:'
+        RepoAboutText         = @"
+This repository carries the project's own code and documentation only.
+It contains no game assets, no leaked files, and nothing extracted from them.
+Don't ask, and don't share the leaked build anywhere.
+"@
+        BugsTitle             = 'Bugs and feedback:'
+        BugsIssues            = 'GitHub Issues: https://github.com/andr3xcl/littlegods-dlc-installer/issues'
+        BugsDiscord           = 'CodModding Discord: https://discord.gg/wWGNqUEg9'
+        CreditsTitle          = 'PROGRAM CREDITS'
+        CreditsModAuthor      = 'Mod Author:'
+        CreditsProgramAuthor  = 'Program Author:'
+        CreditsGitHub         = 'GitHub:'
+        CreditsCommunity      = 'Community:'
+        CreditsDiscord        = 'Discord:'
+        Download              = 'Download package from MediaFire'
+        DownloadAsk           = 'The file is approximately 8.54 GB. Download now?'
+        DownloadInfo          = @"
+NOTE ABOUT DISK SPACE (~20 GB free required):
+  1. First, the ZIP file (~8.54 GB) is downloaded to the TEMP folder.
+  2. Then, the files (~8.54 GB) are extracted in TEMP at the same time (both ZIP and extracted files coexist).
+  3. Once finished, the package is moved to Desktop and the temporary files in TEMP are automatically deleted.
+"@
+        DownloadZip           = 'ZIP'
+        DownloadExtract       = 'Extracted folder'
+        Downloading           = 'Starting package download...'
+        DownloadMethod        = 'Using fast, resumable Windows download (BITS)...'
+        DownloadStreamMethod  = 'Using high-speed direct download with live progress indicator...'
+        FallbackStream        = 'BITS unavailable or failed, switching to direct download...'
+        DownloadingZip        = 'Downloading ZIP file from MediaFire...'
+        ZipDownloaded         = 'ZIP file download complete.'
+        Extracting            = 'Extracting ZIP archive (this may take a few minutes)...'
+        ExtractDone           = 'Extraction completed successfully.'
+        FindingPackage        = 'Checking package structure inside extracted folder...'
+        PackageFound          = 'Package structure successfully verified.'
+        MovingToDesktop       = 'Moving Zombies Declassified package to Desktop...'
+        MovedToDesktop        = 'Package saved on Desktop:'
+        DeletingZipTemp       = 'Deleting temporary ZIP file...'
+        DeletingExtTemp       = 'Deleting temporary extraction folder...'
+        TempCleanupDone       = 'Temporary files cleaned up successfully.'
+        PackageAutoFound      = 'Package automatically detected at:'
+        PackageNotFound       = 'Package not found automatically on Desktop. Please choose an option below:'
+        Cleanup               = 'Clean installer temporary files'
+        CleanupInfo           = 'Only the downloaded ZIP and extracted folder will be deleted.'
+        CleanupAsk            = 'Do you want to delete these files?'
+        CleanupNone           = 'There are no installer temporary files to delete.'
+        CleanupDone           = 'Temporary files deleted successfully.'
+        DownloadDone          = 'Package downloaded, prepared, and ready to install.'
+        DownloadError         = 'Error during package download or preparation:'
+        NoSpace               = 'Insufficient disk space in TEMP. At least 20 GB free is required because the ZIP (~8.54 GB) and extracted files (~8.54 GB) coexist before moving to Desktop.'
+        Steam                 = 'Install on Steam'
+        SteamStatus           = 'Steam detected'
+        SteamNotFound         = 'Steam or Black Ops II was not found automatically.'
+        SteamNoGame           = 'Steam is installed, but Black Ops II was not found.'
+        SteamDisabled         = 'Unavailable: Steam is not installed'
+        Pirate                = 'Install alternative version'
+        Verify                = 'Verify files'
+        Language              = 'Change language'
+        Exit                  = 'Exit'
+        Select                = 'Select an option'
+        Package               = 'Select the ZombiesDeclassified_BETA1 folder'
+        PackageHelp           = 'It must contain the storage and steam folders.'
+        Game                  = 'Select the pluto_t6_full_game folder'
+        GameHelp              = 'This is the folder where the alternative game files are installed.'
+        BaseGame              = 'Select the folder where Black Ops II is installed'
+        BaseGameHelp          = 'This is the main game folder containing the zone and sound folders.'
+        Cancel                = 'No folder was selected.'
+        InvalidPackage        = 'This is not the ZombiesDeclassified folder. Please choose the correct one.'
+        InvalidGame           = 'The folder must be named exactly pluto_t6_full_game.'
+        None                  = 'No installation was detected.'
+        Already               = 'This installation is already installed.'
+        RepairAsk             = 'Do you want to verify and repair missing or damaged files?'
+        Preparing             = 'Preparing installation...'
+        Copying               = 'Copying files to'
+        Complete              = 'Installation complete.'
+        Verifying             = 'Verifying'
+        VerifyComplete        = 'Verification complete.'
+        AllGood               = 'All files are complete.'
+        Problems              = 'Missing or different'
+        NoFiles               = 'There are no source files to verify.'
+        NoSource              = 'Source files not found. Please select the package first.'
+        LanguageName          = 'English'
+        Pause                 = 'Press Enter to continue'
+        ExitAsk               = 'Do you want to close the installer?'
+        Interrupt             = 'The program was asked to close. Choose whether to exit.'
+        InvalidOption         = 'Invalid option. Please choose a number from the menu.'
+        ProcessConflictTitle  = 'RUNNING PROCESS DETECTED'
+        ProcessConflictInfo   = 'The following programs are using game files and blocking file copy:'
+        ProcessConflictAction = '[R] Retry | [C] Close processes automatically | [M] Cancel and return to menu'
+        ProcessCloseDone      = 'Processes closed successfully.'
+        ProcessCopyFailed     = 'Could not complete file copy because a file is locked by another program.'
+        CopyCancelled         = 'Copy operation cancelled by user.'
+        MediaFireLinkHeader   = 'Official MediaFire download link:'
+        DownloadOptionsPrompt = '[1] Start automatic download and preparation | [2] Return to main menu'
+        PackageMissingPrompt  = @"
+[1] Browse and select folder manually in file dialog
+[2] Download package automatically from MediaFire now
+[3] Return to main menu
+"@
+        ReturningToMenu       = 'Returning to main menu...'
+        CancelFolderReturn    = 'No folder was selected. Returning to menu...'
+        YesKey                = 'Y'
+        Step1Prep             = '[STEP 1/6] Preparing download environment...'
+        Step2Link             = '[STEP 2/6] Resolving download link...'
+        ConnectingMF          = ' -> Connecting to MediaFire...'
+        LinkOK                = ' -> Direct link resolved successfully.'
+        ZipSizeLabel          = 'Size'
+        Step3Extract          = '[STEP 3/6]'
+        ExtractDest           = ' -> Temporary destination:'
+        Step4Check            = '[STEP 4/6]'
+        Step5Move             = '[STEP 5/6]'
+        MoveDest              = ' -> Destination:'
+        ReplacingPrev         = ' -> Replacing previous installation on Desktop...'
+        Step6Cleanup          = '[STEP 6/6] Cleaning up temporary files...'
+        FolderLabel           = ' Folder:'
+        CleanupOnError        = ' -> Cleaning up temporary files due to error...'
+        FreeDiskLabel         = 'Free disk space'
+        ClosingProcs          = 'Closing processes...'
+        InvalidOptionShort    = 'Invalid option.'
+        OptionPromptRCM       = 'Option [R/C/M]'
+        OptionPromptRM        = 'Option [R/M]'
+        CopyErrorLabel        = 'COPY ERROR'
+        CopyingStorageTo      = ' -> Copying storage/t6 to'
+        CopyingGameTo         = ' -> Copying game files to'
+        PackageDetectedMenu   = 'Package detected:'
+        PackageNotDetMenu     = 'Package: Not detected on Desktop'
+        LangMenuHeader        = 'SELECT LANGUAGE'
+        Uninstall             = 'Uninstall DLC 5'
+        UninstallTitle        = 'UNINSTALLER - ZOMBIES DECLASSIFIED DLC 5'
+        UninstallCheckTitle   = 'Checking installations on the system...'
+        UninstallFoundPlut    = 'Plutonium installation detected:'
+        UninstallFoundGame    = 'Game installation detected:'
+        UninstallNone         = 'No DLC 5 installation was found on this system.'
+        UninstallAskPlut      = 'Delete DLC 5 files from the Plutonium folder?'
+        UninstallAskGame      = 'Delete DLC 5 files from the game folder?'
+        UninstallDeleting     = ' -> Deleting:'
+        UninstallDoneFile     = ' -> File deleted:'
+        UninstallDoneDir      = ' -> Folder deleted:'
+        UninstallComplete     = 'Uninstall complete. All DLC 5 files have been removed.'
+        UninstallCancelled    = 'Uninstall cancelled. Nothing was deleted.'
+        UninstallError        = 'Error while deleting:'
+        UninstallSkip         = 'Skipped (not found):'
+        UninstallAskManualGame = 'Do you want to select the game folder manually (Steam / pluto_t6_full_game)?'
+        UninstallNoGameFiles  = 'No DLC 5 files were found in the selected folder.'
+        UninstallModFilesFound = 'DLC 5 files found:'
+        WizardWelcome          = 'INSTALLATION WIZARD - ZOMBIES DECLASSIFIED DLC 5'
+        WizardStepGame         = '[STEP 1] Select game version'
+        WizardGameModePrompt   = 'Which version of Black Ops II do you have?'
+        WizardOptionSteam      = 'Steam (Official)'
+        WizardOptionAlt        = 'Alternative (pluto_t6_full_game / Other)'
+        WizardSteamAutoFound   = 'Black Ops II detected on Steam:'
+        WizardSteamNotFound    = 'Black Ops II was not found in default Steam folders.'
+        WizardSteamAskManual   = 'Do you want to browse and select the Black Ops II folder manually?'
+        WizardAltFolderPrompt  = 'Select the folder where your game is installed (e.g. pluto_t6_full_game):'
+        WizardStepStatus       = '[STEP 2] System status check'
+        WizardStatusPlutMod    = 'Plutonium (storage\t6):'
+        WizardStatusGameMod    = 'Game folder:'
+        WizardStatusInstalled  = 'MOD INSTALLED'
+        WizardStatusNotInst    = 'NOT INSTALLED'
+        WizardStatusPkg        = 'Zombies Declassified package:'
+        WizardPkgDetected      = 'Detected at:'
+        WizardPkgNotDetected   = 'Not detected on Desktop'
+        WizardStepPackage      = '[STEP 3] Mod Package'
+        WizardPkgPrompt        = 'Do you have the Zombies Declassified package downloaded or do you want to download it now?'
+        WizardPkgOptDownload   = 'Download automatically from MediaFire (~8.54 GB)'
+        WizardPkgOptSelect     = 'Already downloaded, browse and select folder'
+        WizardStepAction       = '[STEP 4] Installation & Management'
+        WizardActionAskInstall = 'Do you want to install Zombies Declassified DLC 5 now?'
+        WizardActionAlready    = 'The mod is already installed on your system. What would you like to do?'
+        WizardActionRepair     = 'Repair / Reinstall files (step-by-step copy)'
+        WizardActionUninstall  = 'Uninstall mod completely'
+        WizardActionVerify     = 'Verify file integrity'
+        WizardActionExit       = 'Exit'
+        WizardFinishedTitle    = 'OPERATION FINISHED'
+        WizardRunAgainAsk      = 'Do you want to perform another operation or return to start?'
+    }
+    PT = @{
+        Title                 = 'Littlegods Tool DLC5'
+        AppTitle              = 'Littlegods Tool DLC5'
+        Subtitle              = 'ZOMBIES DECLASSIFIED - INSTALADOR'
+        AuthorText            = 'Programa: andr3x_cl'
+        About                 = 'Informacoes do Mod e Creditos'
+        ModDescTitle          = 'Zombies Declassified'
+        ModDescText           = @"
+Zombies Declassified e um port para PC em desenvolvimento da DLC 5 nao lancada de Black Ops 2.
+Os mapas foram portados, polidos e corrigidos para oferecer uma experiencia o mais proxima possivel de um lancamento oficial, como si a Treyarch os tivesse completado.
+Este mod e compativel com Plutonium (https://plutonium.pw/), com suporte completo para um jogador e multijugador.
+"@
+        ProgressTitle         = 'Progresso Atual:'
+        MapHeader             = 'Mapa'
+        CompletionHeader      = 'Conclusao'
+        ReleaseDatesTitle     = 'Datas de Lancamento:'
+        ReleaseDate1          = '31 de Agosto: BETA 1 disponivel - todos os nove mapas da DLC 5. Baixe em Releases (https://github.com/andr3xcl/littlegods-dlc-installer/releases).'
+        ReleaseDate2          = 'Final de Setembro: Lancamento final com suporte Solo EE, Grief, Call of the Dead e codigo fonte completo.'
+        ReqsTitle             = 'Requisitos de Instalacao:'
+        ReqsText              = 'Voce precisara da versao completa da Steam do Black Ops II (https://store.steampowered.com/app/202970/) com todas as DLCs, e do cliente Plutonium (https://plutonium.pw/).'
+        RepoAboutTitle        = 'Sobre este repositorio:'
+        RepoAboutText         = @"
+Este repositorio contem apenas o codigo e documentacao proprios do projeto.
+Nao contem arquivos do jogo, arquivos vazados nem nada extraido deles.
+Nao peca e nao compartilhe a build vazada em nenhum lugar.
+"@
+        BugsTitle             = 'Erros e Feedback:'
+        BugsIssues            = 'Issues do GitHub: https://github.com/andr3xcl/littlegods-dlc-installer/issues'
+        BugsDiscord           = 'Discord do CodModding: https://discord.gg/wWGNqUEg9'
+        CreditsTitle          = 'CREDITOS DO PROGRAMA'
+        CreditsModAuthor      = 'Autor do Mod:'
+        CreditsProgramAuthor  = 'Criador do Programa:'
+        CreditsGitHub         = 'GitHub:'
+        CreditsCommunity      = 'Comunidade:'
+        CreditsDiscord        = 'Discord:'
+        Download              = 'Baixar pacote do MediaFire'
+        DownloadAsk           = 'O arquivo tem aproximadamente 8.54 GB. Baixar agora?'
+        DownloadInfo          = @"
+NOTA SOBRE O ESPACO EM DISCO (Necessarios ~20 GB livres):
+  1. Primeiro, o arquivo ZIP (~8.54 GB) e baixado na pasta TEMP.
+  2. Depois, os arquivos (~8.54 GB) sao extraidos em TEMP simultaneamente (o ZIP e os extraidos coexistem).
+  3. Ao terminar, o pacote e movido para a Area de Trabalho e os temporarios de TEMP sao apagados automaticamente.
+"@
+        DownloadZip           = 'ZIP'
+        DownloadExtract       = 'Pasta extraida'
+        Downloading           = 'Iniciando download do pacote...'
+        DownloadMethod        = 'Usando download rapido e retomavel do Windows (BITS)...'
+        DownloadStreamMethod  = 'Usando download direto de alta velocidade com indicador de progresso...'
+        FallbackStream        = 'BITS indisponivel ou falhou, mudando para download direto...'
+        DownloadingZip        = 'Baixando arquivo ZIP do MediaFire...'
+        ZipDownloaded         = 'Download do arquivo ZIP concluido.'
+        Extracting            = 'Extraindo arquivo ZIP (isso pode levar alguns minutos)...'
+        ExtractDone           = 'Extracao concluida com sucesso.'
+        FindingPackage        = 'Procurando estrutura do pacote na pasta extraida...'
+        PackageFound          = 'Estrutura do pacote validada com sucesso.'
+        MovingToDesktop       = 'Movendo pacote Zombies Declassified para a Area de Trabalho...'
+        MovedToDesktop        = 'Pacote salvo na Area de Trabalho:'
+        DeletingZipTemp       = 'Apagando arquivo temporario ZIP...'
+        DeletingExtTemp       = 'Apagando pasta temporaria de extracao...'
+        TempCleanupDone       = 'Arquivos temporarios removidos com sucesso.'
+        PackageAutoFound      = 'Pacote detectado automaticamente em:'
+        PackageNotFound       = 'Pacote nao encontrado automaticamente na Area de Trabalho. Escolha uma opcao:'
+        Cleanup               = 'Limpar temporarios do instalador'
+        CleanupInfo           = 'Apenas o ZIP baixado e a pasta extraida serao apagados.'
+        CleanupAsk            = 'Deseja apagar estes arquivos?'
+        CleanupNone           = 'Nao ha temporarios do instalador para apagar.'
+        CleanupDone           = 'Temporarios apagados com sucesso.'
+        DownloadDone          = 'Pacote baixado, preparado e pronto para instalar.'
+        DownloadError         = 'Erro durante o download ou preparacao do pacote:'
+        NoSpace               = 'Espaco em disco insuficiente em TEMP. Sao necessarios pelo menos 20 GB livres porque o ZIP (~8.54 GB) e os arquivos extraidos (~8.54 GB) coexistem antes de mover para a Area de Trabalho.'
+        Steam                 = 'Instalar no Steam'
+        SteamStatus           = 'Steam detectado'
+        SteamNotFound         = 'Steam ou Black Ops II nao foram encontrados automaticamente.'
+        SteamNoGame           = 'Steam esta instalado, mas Black Ops II nao foi encontrado.'
+        SteamDisabled         = 'Indisponivel: Steam nao esta instalado'
+        Pirate                = 'Instalar versao alternativa'
+        Verify                = 'Verificar archivos'
+        Language              = 'Mudar idioma'
+        Exit                  = 'Sair'
+        Select                = 'Escolha uma opcao'
+        Package               = 'Selecione a pasta ZombiesDeclassified_BETA1'
+        PackageHelp           = 'Ela deve conter as pastas storage e steam.'
+        Game                  = 'Selecione a pasta pluto_t6_full_game'
+        GameHelp              = 'E a pasta onde os arquivos do jogo alternativo estao instalados.'
+        BaseGame              = 'Selecione a pasta onde o Black Ops II esta instalado'
+        BaseGameHelp          = 'E a pasta principal do jogo, que contem as pastas zone e sound.'
+        Cancel                = 'Nenhuma pasta foi selecionada.'
+        InvalidPackage        = 'Esta nao e a pasta ZombiesDeclassified. Escolha a correta.'
+        InvalidGame           = 'A pasta deve se chamar exatamente pluto_t6_full_game.'
+        None                  = 'Nenhuma instalacao foi detectada.'
+        Already               = 'Esta instalacao ja esta instalada.'
+        RepairAsk             = 'Deseja verificar e reparar arquivos ausentes ou danificados?'
+        Preparing             = 'Preparando instalacao...'
+        Copying               = 'Copiando arquivos para'
+        Complete              = 'Instalacao concluida.'
+        Verifying             = 'Verificando'
+        VerifyComplete        = 'Verificacao concluida.'
+        AllGood               = 'Todos os arquivos estao completos.'
+        Problems              = 'Ausentes ou diferentes'
+        NoFiles               = 'Nao ha archivos de origen para verificar.'
+        NoSource              = 'Archivos de origen nao encontrados. Selecione o pacote primeiro.'
+        LanguageName          = 'Portugues'
+        Pause                 = 'Pressione Enter para continuar'
+        ExitAsk               = 'Deseja fechar o instalador?'
+        Interrupt             = 'O programa recebeu um pedido para fechar. Escolha se deseja sair.'
+        InvalidOption         = 'Opcao invalida. Por favor escolha um numero do menu.'
+        ProcessConflictTitle  = 'PROCESSO EM EXECUCAO DETECTADO'
+        ProcessConflictInfo   = 'Os siguientes programas estao usando os arquivos do jogo e bloqueando a copia:'
+        ProcessConflictAction = '[R] Tentar novamente | [C] Fechar processos automaticamente | [M] Cancelar e voltar ao menu'
+        ProcessCloseDone      = 'Processos fechados com sucesso.'
+        ProcessCopyFailed     = 'Nao foi possivel concluir a copia porque um arquivo esta bloqueado por outro programa.'
+        CopyCancelled         = 'Operacao de copia cancelada pelo usuario.'
+        MediaFireLinkHeader   = 'Link oficial de download do MediaFire:'
+        DownloadOptionsPrompt = '[1] Iniciar download e preparacao automatica | [2] Voltar ao menu principal'
+        PackageMissingPrompt  = @"
+[1] Procurar e selecionar pasta manualmente no explorador
+[2] Baixar pacote do MediaFire agora automaticamente
+[3] Voltar ao menu principal
+"@
+        ReturningToMenu       = 'Voltando ao menu principal...'
+        CancelFolderReturn    = 'Nenhuma pasta foi selecionada. Voltando ao menu...'
+        YesKey                = 'S'
+        Step1Prep             = '[PASSO 1/6] Preparando ambiente de download...'
+        Step2Link             = '[PASSO 2/6] Resolvendo link de download...'
+        ConnectingMF          = ' -> Conectando ao MediaFire...'
+        LinkOK                = ' -> Link direto obtido com sucesso.'
+        ZipSizeLabel          = 'Tamanho'
+        Step3Extract          = '[PASSO 3/6]'
+        ExtractDest           = ' -> Destino temporario:'
+        Step4Check            = '[PASSO 4/6]'
+        Step5Move             = '[PASSO 5/6]'
+        MoveDest              = ' -> Destino:'
+        ReplacingPrev         = ' -> Substituindo instalacao anterior na Area de Trabalho...'
+        Step6Cleanup          = '[PASSO 6/6] Limpando arquivos temporarios...'
+        FolderLabel           = ' Pasta:'
+        CleanupOnError        = ' -> Limpando temporarios devido ao erro...'
+        FreeDiskLabel         = 'Espaco livre em disco'
+        ClosingProcs          = 'Fechando processos...'
+        InvalidOptionShort    = 'Opcao invalida.'
+        OptionPromptRCM       = 'Opcao [R/C/M]'
+        OptionPromptRM        = 'Opcao [R/M]'
+        CopyErrorLabel        = 'ERRO DE COPIA'
+        CopyingStorageTo      = ' -> Copiando storage/t6 para'
+        CopyingGameTo         = ' -> Copiando arquivos do jogo para'
+        PackageDetectedMenu   = 'Pacote detectado:'
+        PackageNotDetMenu     = 'Pacote: Nao detectado na Area de Trabalho'
+        LangMenuHeader        = 'SELECIONAR IDIOMA'
+        Uninstall             = 'Desinstalar DLC 5'
+        UninstallTitle        = 'DESINSTALADOR - ZOMBIES DECLASSIFIED DLC 5'
+        UninstallCheckTitle   = 'Verificando instalacoes no sistema...'
+        UninstallFoundPlut    = 'Instalacao Plutonium detectada:'
+        UninstallFoundGame    = 'Instalacao no jogo detectada:'
+        UninstallNone         = 'Nenhuma instalacao do DLC 5 foi encontrada no sistema.'
+        UninstallAskPlut      = 'Excluir arquivos do DLC 5 da pasta Plutonium?'
+        UninstallAskGame      = 'Excluir arquivos do DLC 5 da pasta do jogo?'
+        UninstallDeleting     = ' -> Excluindo:'
+        UninstallDoneFile     = ' -> Arquivo excluido:'
+        UninstallDoneDir      = ' -> Pasta excluida:'
+        UninstallComplete     = 'Desinstalacao concluida. Todos os arquivos do DLC 5 foram removidos.'
+        UninstallCancelled    = 'Desinstalacao cancelada. Nada foi excluido.'
+        UninstallError        = 'Erro ao excluir:'
+        UninstallSkip         = 'Ignorado (nao encontrado):'
+        UninstallAskManualGame = 'Deseja procurar a pasta do jogo manualmente (Steam / pluto_t6_full_game)?'
+        UninstallNoGameFiles  = 'Nenhum arquivo do DLC 5 foi encontrado na pasta selecionada.'
+        UninstallModFilesFound = 'Arquivos do DLC 5 encontrados:'
+        WizardWelcome          = 'ASSISTENTE DE INSTALACAO - ZOMBIES DECLASSIFIED DLC 5'
+        WizardStepGame         = '[PASSO 1] Selecao da versao do jogo'
+        WizardGameModePrompt   = 'Qual versao do Black Ops II voce possui?'
+        WizardOptionSteam      = 'Steam (Original)'
+        WizardOptionAlt        = 'Alternativa (pluto_t6_full_game / Outra)'
+        WizardSteamAutoFound   = 'Black Ops II detectado na Steam:'
+        WizardSteamNotFound    = 'Black Ops II nao foi encontrado nas pastas padrao da Steam.'
+        WizardSteamAskManual   = 'Deseja procurar e selecionar a pasta do Black Ops II manualmente?'
+        WizardAltFolderPrompt  = 'Selecione a pasta onde o jogo esta instalado (ex. pluto_t6_full_game):'
+        WizardStepStatus       = '[PASSO 2] Verificacao do sistema'
+        WizardStatusPlutMod    = 'Plutonium (storage\t6):'
+        WizardStatusGameMod    = 'Pasta do jogo:'
+        WizardStatusInstalled  = 'MOD INSTALADO'
+        WizardStatusNotInst    = 'NAO INSTALADO'
+        WizardStatusPkg        = 'Pacote Zombies Declassified:'
+        WizardPkgDetected      = 'Detectado em:'
+        WizardPkgNotDetected   = 'Nao detectado na Area de Trabalho'
+        WizardStepPackage      = '[PASSO 3] Pacote do Mod'
+        WizardPkgPrompt        = 'Voce ja baixou o pacote Zombies Declassified ou deseja baixa-lo agora?'
+        WizardPkgOptDownload   = 'Baixar automaticamente do MediaFire (~8.54 GB)'
+        WizardPkgOptSelect     = 'Ja baixei, selecionar pasta no explorador'
+        WizardStepAction       = '[PASSO 4] Instalacao e Gerenciamento'
+        WizardActionAskInstall = 'Deseja instalar Zombies Declassified DLC 5 agora?'
+        WizardActionAlready    = 'O mod ja esta instalado no seu computador. O que deseja fazer?'
+        WizardActionRepair     = 'Reparar / Reinstalar arquivos (copia passo a passo)'
+        WizardActionUninstall  = 'Desinstalar mod completamente'
+        WizardActionVerify     = 'Verificar integridade dos arquivos'
+        WizardActionExit       = 'Sair'
+        WizardFinishedTitle    = 'OPERACAO CONCLUIDA'
+        WizardRunAgainAsk      = 'Deseja realizar outra operacao ou voltar ao inicio?'
+    }
+}
+
+# ── Helper functions ──────────────────────────────────────────────────────────
+function T([string]$key) {
+    $lang = $script:Language
+    if ($text.ContainsKey($lang) -and $text[$lang].ContainsKey($key)) { return $text[$lang][$key] }
+    if ($text['EN'].ContainsKey($key)) { return $text['EN'][$key] }
+    return "[$key]"
+}
+function Get-YesKey { return (T 'YesKey') }
+
+function Pause-Menu {
+    try { Read-Host "`n$(T 'Pause')" | Out-Null } catch { }
+}
+
+function Confirm-Exit {
+    $yesKey = Get-YesKey
+    try {
+        $answer = (Read-Host "$(T 'ExitAsk') [$yesKey/N]").Trim().ToUpperInvariant()
+        return $answer -eq $yesKey
+    }
+    catch { return $false }
+}
+
+# ── Modern Inline Progress Bar (never duplicates or wraps) ───────────────────
+function Show-ModernProgressBar {
+    param(
+        [int]    $Current,
+        [int]    $Total,
+        [string] $StatusText = '',
+        [string] $BarColor   = 'Cyan',
+        [int]    $BarWidth   = 20
+    )
+    if ($Total -le 0) { return }
+    $pct = [math]::Min(100, [math]::Max(0, [int](($Current / $Total) * 100)))
+    $filledCount = [int](($BarWidth * $pct) / 100)
+    $emptyCount = [math]::Max(0, $BarWidth - $filledCount)
+
+    $filled = [string]::new([char]0x2588, $filledCount)  # █
+    $empty  = [string]::new([char]0x2591, $emptyCount)   # ░
+
+    # Keep line well below 80 columns (safe width 64) so it NEVER wraps or duplicates
+    $safeWidth = 64
+    $header = "  [$filled$empty] $($pct.ToString().PadLeft(3))% ($Current/$Total)"
+    $maxStatusLen = [math]::Max(0, $safeWidth - $header.Length - 1)
+    $displayStatus = $StatusText
+    if ($displayStatus.Length -gt $maxStatusLen) {
+        if ($maxStatusLen -gt 4) {
+            $displayStatus = '...' + $displayStatus.Substring($displayStatus.Length - ($maxStatusLen - 3))
+        } else {
+            $displayStatus = ''
+        }
+    }
+
+    $line = "$header $displayStatus".PadRight($safeWidth)
+    if ($line.Length -gt $safeWidth) { $line = $line.Substring(0, $safeWidth) }
+
+    try {
+        $pos = $Host.UI.RawUI.CursorPosition
+        $pos.X = 0
+        $Host.UI.RawUI.CursorPosition = $pos
+    } catch { }
+
+    Write-Host "`r$line" -NoNewline -ForegroundColor $BarColor
+
+    if ($Current -ge $Total) {
+        Write-Host ""
+    }
+}
+
+# ── Real-Time Download Progress Bar (never duplicates or wraps) ───────────────
+function Show-DownloadProgressBar {
+    param(
+        [int64]  $BytesReceived,
+        [int64]  $TotalBytes,
+        [double] $SpeedMBps = 0.0,
+        [int]    $BarWidth  = 16
+    )
+    if ($TotalBytes -le 0) {
+        $mbRec = [math]::Round($BytesReceived / 1MB, 1)
+        $speedStr = if ($SpeedMBps -gt 0) { "$([math]::Round($SpeedMBps, 1)) MB/s" } else { "-- MB/s" }
+        $line = "  Descargando: $mbRec MB ($speedStr)".PadRight(64)
+        if ($line.Length -gt 64) { $line = $line.Substring(0, 64) }
+        try {
+            $pos = $Host.UI.RawUI.CursorPosition
+            $pos.X = 0
+            $Host.UI.RawUI.CursorPosition = $pos
+        } catch { }
+        Write-Host "`r$line" -NoNewline -ForegroundColor Cyan
+        return
+    }
+
+    $pct = [math]::Min(100, [math]::Max(0, [int](($BytesReceived / $TotalBytes) * 100)))
+    $filledCount = [int](($BarWidth * $pct) / 100)
+    $emptyCount = [math]::Max(0, $BarWidth - $filledCount)
+
+    $filled = [string]::new([char]0x2588, $filledCount)  # █
+    $empty  = [string]::new([char]0x2591, $emptyCount)   # ░
+
+    $recGB = [math]::Round($BytesReceived / 1GB, 2)
+    $totGB = [math]::Round($TotalBytes / 1GB, 2)
+    $speedStr = if ($SpeedMBps -gt 0) { "$([math]::Round($SpeedMBps, 1)) MB/s" } else { "-- MB/s" }
+
+    # Format: "  [████░░░░]  45% (3.84/8.54 GB) 12.5 MB/s"
+    # Keep strictly <= 64 chars to avoid any wrap/duplication on resize or move
+    $line = "  [$filled$empty] $($pct.ToString().PadLeft(3))% ($recGB/$totGB GB) $speedStr".PadRight(64)
+    if ($line.Length -gt 64) { $line = $line.Substring(0, 64) }
+
+    try {
+        $pos = $Host.UI.RawUI.CursorPosition
+        $pos.X = 0
+        $Host.UI.RawUI.CursorPosition = $pos
+    } catch { }
+
+    Write-Host "`r$line" -NoNewline -ForegroundColor Cyan
+}
+
+# ── High-Speed Direct Streaming Download with Live Progress ───────────────────
+function Invoke-DownloadDirectStream {
+    param(
+        [string] $Url,
+        [string] $Destination
+    )
+    $req = [System.Net.HttpWebRequest]::Create($Url)
+    $req.Method = 'GET'
+    $req.UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    $req.Timeout = 60000
+    $req.ReadWriteTimeout = 60000
+    $req.AllowAutoRedirect = $true
+
+    $resp = $req.GetResponse()
+    $totalBytes = $resp.ContentLength
+    $stream = $resp.GetResponseStream()
+    $destDir = Split-Path -Parent $Destination
+    if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Force -Path $destDir | Out-Null }
+    $fileStream = [System.IO.File]::Create($Destination)
+
+    $buffer = New-Object byte[] (512 * 1024)
+    $bytesReceived = [int64]0
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $lastUpdate = [int64]0
+    $lastBytes = [int64]0
+    $currentSpeed = 0.0
+
+    try {
+        while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+            $fileStream.Write($buffer, 0, $read)
+            $bytesReceived += $read
+
+            $elapsedMs = $sw.ElapsedMilliseconds
+            if ($elapsedMs - $lastUpdate -ge 250) {
+                $timeDeltaSec = ($elapsedMs - $lastUpdate) / 1000.0
+                $bytesDelta = $bytesReceived - $lastBytes
+                if ($timeDeltaSec -gt 0) {
+                    $currentSpeed = ($bytesDelta / 1MB) / $timeDeltaSec
+                }
+                $lastUpdate = $elapsedMs
+                $lastBytes = $bytesReceived
+                Show-DownloadProgressBar -BytesReceived $bytesReceived -TotalBytes $totalBytes -SpeedMBps $currentSpeed
+            }
+        }
+        Show-DownloadProgressBar -BytesReceived $bytesReceived -TotalBytes $totalBytes -SpeedMBps $currentSpeed
+        Write-Host ""
+    }
+    finally {
+        if ($fileStream) { $fileStream.Flush(); $fileStream.Close(); $fileStream.Dispose() }
+        if ($stream) { $stream.Close(); $stream.Dispose() }
+        if ($resp) { $resp.Close(); $resp.Dispose() }
+    }
+}
+
+# ── Download Manager: BITS with live progress + fallback to Direct Stream ─────
+function Invoke-DownloadWithProgressBar {
+    param(
+        [string] $Url,
+        [string] $Destination
+    )
+    $bitsSucceeded = $false
+    if (Get-Command Start-BitsTransfer -ErrorAction SilentlyContinue) {
+        try {
+            Write-Host " -> $(T 'DownloadMethod')" -ForegroundColor DarkCyan
+            $job = Start-BitsTransfer -Source $Url -Destination $Destination -DisplayName 'Zombies Declassified' -Asynchronous -ErrorAction Stop
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $lastBytes = [int64]0
+            $lastMs = [int64]0
+            $speed = 0.0
+
+            while ($job.JobState -in @('Connecting', 'Transferring', 'TransientError')) {
+                $bytes = [int64]$job.BytesTransferred
+                $total = [int64]$job.BytesTotal
+                $nowMs = $sw.ElapsedMilliseconds
+                if ($nowMs - $lastMs -ge 350) {
+                    $dt = ($nowMs - $lastMs) / 1000.0
+                    if ($dt -gt 0) {
+                        $speed = (($bytes - $lastBytes) / 1MB) / $dt
+                    }
+                    $lastBytes = $bytes
+                    $lastMs = $nowMs
+                    Show-DownloadProgressBar -BytesReceived $bytes -TotalBytes $total -SpeedMBps $speed
+                }
+                Start-Sleep -Milliseconds 200
+            }
+
+            if ($job.JobState -eq 'Transferred') {
+                Complete-BitsTransfer -BitsJob $job
+                Show-DownloadProgressBar -BytesReceived $job.BytesTransferred -TotalBytes $job.BytesTotal -SpeedMBps 0
+                Write-Host ""
+                $bitsSucceeded = $true
+            } else {
+                try { Remove-BitsTransfer -BitsJob $job -ErrorAction SilentlyContinue } catch { }
+            }
+        }
+        catch {
+            $bitsSucceeded = $false
+        }
+    }
+
+    if (-not $bitsSucceeded -or -not (Test-Path -LiteralPath $Destination)) {
+        if (Test-Path -LiteralPath $Destination) {
+            Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
+        }
+        Write-Host " -> $(T 'FallbackStream')" -ForegroundColor DarkCyan
+        Invoke-DownloadDirectStream -Url $Url -Destination $Destination
+    }
+}
+
+function Get-TempRoot {
+    foreach ($candidate in @($env:TEMP, $env:TMP, [System.IO.Path]::GetTempPath())) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            try {
+                $full = [System.IO.Path]::GetFullPath($candidate)
+                if (Test-Path $full) { return $full }
+            }
+            catch { }
+        }
+    }
+    return $script:Root
+}
+
+function Get-FreeDiskSpace([string]$path) {
+    try {
+        $drive = Split-Path -Qualifier $path
+        $letter = $drive.TrimEnd(':')
+        $wmi = Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='${letter}:'" -ErrorAction SilentlyContinue
+        if ($null -ne $wmi) { return [int64]$wmi.FreeSpace }
+    }
+    catch { }
+    return [int64]::MaxValue
+}
+
+function Select-Folder([string]$description) {
+    $env:ZDC_FOLDER_DESCRIPTION = $description
+    try {
+        $selected = & powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -Command {
+            Add-Type -AssemblyName System.Windows.Forms
+            [System.Windows.Forms.Application]::EnableVisualStyles()
+            $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+            $dialog.Description = $env:ZDC_FOLDER_DESCRIPTION
+            $dialog.ShowNewFolderButton = $false
+            if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.SelectedPath }
+        }
+    }
+    catch { $selected = $null }
+    finally { Remove-Item Env:ZDC_FOLDER_DESCRIPTION -ErrorAction SilentlyContinue }
+    if ($selected) {
+        $last = ($selected | Select-Object -Last 1).ToString().Trim()
+        if (-not [string]::IsNullOrWhiteSpace($last)) { return $last }
+    }
+    return $null
+}
+
+# ── Package Auto-Detection & Verification ─────────────────────────────────────
+function Test-PackageFolder([string]$folderPath) {
+    if ([string]::IsNullOrWhiteSpace($folderPath) -or -not (Test-Path -LiteralPath $folderPath)) {
+        return $false
+    }
+    $hasStorage = Test-Path (Join-Path $folderPath 'storage\t6')
+    $hasZone = Test-Path (Join-Path $folderPath 'steam\zone')
+    $hasSound = Test-Path (Join-Path $folderPath 'steam\sound')
+    return ($hasStorage -and $hasZone -and $hasSound)
+}
+
+function Find-PackageAuto {
+    # 1. Check current script root / selected root
+    if (Test-PackageFolder $script:Root) {
+        return $script:Root
+    }
+    # 2. Check Desktop folder
+    $desktopPath = [System.Environment]::GetFolderPath('Desktop')
+    $desktopPkg = Join-Path $desktopPath 'ZombiesDeclassified_BETA1'
+    if (Test-PackageFolder $desktopPkg) {
+        return $desktopPkg
+    }
+    # 3. Check current working directory
+    if ($PSScriptRoot -and (Test-PackageFolder $PSScriptRoot)) {
+        return $PSScriptRoot
+    }
+    return $null
+}
+
+function Select-Package {
+    $autoPath = Find-PackageAuto
+    if ($autoPath) {
+        $script:Root = $autoPath
+        $script:StorageSource = Join-Path $autoPath 'storage\t6'
+        $script:GameSource = Join-Path $autoPath 'steam'
+        Write-Host "`n$(T 'PackageAutoFound') $autoPath" -ForegroundColor Green
+        return $true
+    }
+
+    # 2. If not found automatically, display MediaFire link and prompt options
+    Write-Host "`n========================================================" -ForegroundColor Yellow
+    Write-Host " $(T 'PackageNotFound')" -ForegroundColor Yellow
+    Write-Host "========================================================" -ForegroundColor Yellow
+    Write-Host "`n$(T 'MediaFireLinkHeader')" -ForegroundColor Cyan
+    Write-Host " -> $script:MediaFireUrl" -ForegroundColor Gray
+    Write-Host "`n$(T 'PackageMissingPrompt')" -ForegroundColor Yellow
+
+    $opt = $null
+    try { $opt = (Read-Host "$(T 'Select') [1/2/3]").Trim() } catch { }
+
+    switch ($opt) {
+        '1' {
+            Write-Host "`n$(T 'Package')" -ForegroundColor Cyan
+            Write-Host "$(T 'PackageHelp')"
+            $selected = Select-Folder (T 'Package')
+            if ([string]::IsNullOrWhiteSpace($selected)) {
+                Write-Host "`n$(T 'CancelFolderReturn')" -ForegroundColor Yellow
+                Start-Sleep -Milliseconds 800
+                return $false
+            }
+            if (-not (Test-PackageFolder $selected)) {
+                Write-Host "`n$(T 'InvalidPackage')" -ForegroundColor Red
+                Start-Sleep -Milliseconds 1200
+                return $false
+            }
+            $script:Root = $selected
+            $script:StorageSource = Join-Path $selected 'storage\t6'
+            $script:GameSource = Join-Path $selected 'steam'
+            Write-Host "`n$(T 'PackageFound'): $selected" -ForegroundColor Green
+            return $true
+        }
+        '2' {
+            Clear-Host
+            $downloaded = Invoke-DownloadPackage
+            if ($downloaded) {
+                return $true
+            }
+            return $false
+        }
+        default {
+            Write-Host "`n$(T 'ReturningToMenu')" -ForegroundColor Yellow
+            Start-Sleep -Milliseconds 600
+            return $false
+        }
+    }
+}
+
+function Test-SourceReady {
+    return ((Test-Path $script:StorageSource) -and (Test-Path $script:GameSource))
+}
+
+function Ensure-SourceReady {
+    if (Test-SourceReady) { return $true }
+    $pkg = Find-PackageAuto
+    if ($pkg) {
+        $script:Root = $pkg
+        $script:StorageSource = Join-Path $pkg 'storage\t6'
+        $script:GameSource = Join-Path $pkg 'steam'
+        if (Test-SourceReady) { return $true }
+    }
+    return (Select-Package)
+}
+
+# ── Download & Cleanup ────────────────────────────────────────────────────────
+function Remove-DownloadTemp {
+    $tempRoot = Get-TempRoot
+    $zipPath = Join-Path $tempRoot 'ZombiesDeclassified_BETA1.zip'
+    $extractRoot = Join-Path $tempRoot 'ZombiesDeclassified_BETA1_package'
+
+    if (Test-Path -LiteralPath $zipPath) {
+        Write-Host " -> $(T 'DeletingZipTemp') ($zipPath)" -ForegroundColor DarkGray
+        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path -LiteralPath $extractRoot) {
+        Write-Host " -> $(T 'DeletingExtTemp') ($extractRoot)" -ForegroundColor DarkGray
+        Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-DownloadPackage {
+    Write-Host "`n========================================================" -ForegroundColor Cyan
+    Write-Host " $(T 'Download')" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor Cyan
+
+    Write-Host "`n$(T 'MediaFireLinkHeader')" -ForegroundColor Cyan
+    Write-Host " -> $script:MediaFireUrl" -ForegroundColor Gray
+
+    $tempRoot = Get-TempRoot
+    $zipPath = Join-Path $tempRoot 'ZombiesDeclassified_BETA1.zip'
+    $extractRoot = Join-Path $tempRoot 'ZombiesDeclassified_BETA1_package'
+
+    # Check disk space
+    $freeBytes = Get-FreeDiskSpace $tempRoot
+    $neededBytes = [int64](20 * 1GB)
+    $freeGB = [math]::Round($freeBytes / 1GB, 2)
+    if ($freeBytes -lt $neededBytes) {
+        Write-Host "`n$(T 'NoSpace') (TEMP Drive Free: $freeGB GB / Needed: 20 GB)" -ForegroundColor Red
+        Pause-Menu
+        return $false
+    }
+
+    Write-Host "`n$(T 'DownloadInfo')" -ForegroundColor Yellow
+    Write-Host " [1] $(T 'DownloadZip'): $zipPath" -ForegroundColor Gray
+    Write-Host " [2] $(T 'DownloadExtract'): $extractRoot" -ForegroundColor Gray
+    Write-Host " [3] $(T 'FreeDiskLabel'): $freeGB GB" -ForegroundColor Gray
+
+    Write-Host "`n$(T 'DownloadOptionsPrompt')" -ForegroundColor Yellow
+    $ans = $null
+    try { $ans = (Read-Host "$(T 'Select') [1/2]").Trim() } catch { }
+    if ($ans -ne '1') {
+        Write-Host "`n$(T 'ReturningToMenu')" -ForegroundColor Yellow
+        Start-Sleep -Milliseconds 600
+        return $false
+    }
+
+    try {
+        # Clean any prior remnants
+        Write-Host "`n$(T 'Step1Prep')" -ForegroundColor Cyan
+        Remove-DownloadTemp
+
+        # Resolve MediaFire direct link
+        Write-Host "`n$(T 'Step2Link') $(T 'Downloading')" -ForegroundColor Cyan
+        Write-Host (T 'ConnectingMF') -ForegroundColor DarkGray
+        $page = Invoke-WebRequest -Uri $script:MediaFireUrl -UseBasicParsing -ErrorAction Stop
+        $urlPattern = 'https://download[^\s"''<>]+'
+        $regexMatch = [regex]::Match($page.Content, $urlPattern)
+        if (-not $regexMatch.Success) { throw 'MediaFire direct download link not found on page.' }
+        $downloadUrl = $regexMatch.Value -replace '&amp;', '&'
+
+        Write-Host (T 'LinkOK') -ForegroundColor DarkCyan
+        Write-Host " -> $(T 'DownloadingZip')" -ForegroundColor Cyan
+
+        Invoke-DownloadWithProgressBar -Url $downloadUrl -Destination $zipPath
+
+        if (-not (Test-Path -LiteralPath $zipPath -PathType Leaf)) {
+            throw "The ZIP file was not created at: $zipPath"
+        }
+        $zipSizeGB = [math]::Round(((Get-Item $zipPath).Length / 1GB), 2)
+        Write-Host " -> $(T 'ZipDownloaded') ($(T 'ZipSizeLabel'): $zipSizeGB GB)" -ForegroundColor Green
+
+        # Extract archive with live progress
+        Write-Host "`n$(T 'Step3Extract') $(T 'Extracting')" -ForegroundColor Cyan
+        Write-Host "$(T 'ExtractDest') $extractRoot" -ForegroundColor DarkGray
+        if (Test-Path -LiteralPath $extractRoot) {
+            Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Force -Path $extractRoot -ErrorAction Stop | Out-Null
+
+        $extractedOk = $false
+        try {
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+            $totalEntries = $archive.Entries.Count
+            $entryIndex = 0
+            foreach ($entry in $archive.Entries) {
+                $entryIndex++
+                $destPath = [System.IO.Path]::Combine($extractRoot, $entry.FullName)
+                if ([string]::IsNullOrEmpty($entry.Name)) {
+                    if (-not (Test-Path -LiteralPath $destPath)) {
+                        [System.IO.Directory]::CreateDirectory($destPath) | Out-Null
+                    }
+                } else {
+                    $parentDir = [System.IO.Path]::GetDirectoryName($destPath)
+                    if (-not (Test-Path -LiteralPath $parentDir)) {
+                        [System.IO.Directory]::CreateDirectory($parentDir) | Out-Null
+                    }
+                    [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destPath, $true)
+                }
+                if ($totalEntries -gt 0 -and ($entryIndex % 5 -eq 0 -or $entryIndex -eq $totalEntries)) {
+                    Show-ModernProgressBar -Current $entryIndex -Total $totalEntries -StatusText $entry.Name -BarColor 'Cyan'
+                }
+            }
+            $archive.Dispose()
+            $extractedOk = $true
+        }
+        catch {
+            Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force -ErrorAction Stop
+            $extractedOk = $true
+        }
+
+        if (-not (Test-Path -LiteralPath $extractRoot)) {
+            throw "Extraction folder was not created: $extractRoot"
+        }
+        Write-Host " -> $(T 'ExtractDone')" -ForegroundColor Green
+
+        # Check package structure
+        Write-Host "`n$(T 'Step4Check') $(T 'FindingPackage')" -ForegroundColor Cyan
+        $candidates = @(Get-Item -LiteralPath $extractRoot -ErrorAction SilentlyContinue) +
+        @(Get-ChildItem -LiteralPath $extractRoot -Directory -Recurse -ErrorAction SilentlyContinue)
+
+        $package = $candidates | Where-Object {
+            (Test-Path (Join-Path $_.FullName 'storage\t6')) -and
+            (Test-Path (Join-Path $_.FullName 'steam\zone')) -and
+            (Test-Path (Join-Path $_.FullName 'steam\sound'))
+        } | Select-Object -First 1
+
+        if ($null -eq $package) { throw 'Package structure (storage\t6 / steam\zone / steam\sound) not found inside the ZIP.' }
+        Write-Host " -> $(T 'PackageFound')" -ForegroundColor Green
+
+        # Move to Desktop
+        Write-Host "`n$(T 'Step5Move') $(T 'MovingToDesktop')" -ForegroundColor Cyan
+        $desktopPath = [System.Environment]::GetFolderPath('Desktop')
+        $destFolder = Join-Path $desktopPath 'ZombiesDeclassified_BETA1'
+        Write-Host "$(T 'MoveDest') $destFolder" -ForegroundColor DarkGray
+        if (Test-Path $destFolder) {
+            Write-Host (T 'ReplacingPrev') -ForegroundColor DarkGray
+            Remove-Item $destFolder -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        Move-Item -LiteralPath $package.FullName -Destination $destFolder -Force -ErrorAction Stop
+        Write-Host " -> $(T 'MovedToDesktop') $destFolder" -ForegroundColor Green
+
+        # Clean up temporaries with explicit messages
+        Write-Host "`n$(T 'Step6Cleanup')" -ForegroundColor Cyan
+        Remove-DownloadTemp
+        Write-Host " -> $(T 'TempCleanupDone')" -ForegroundColor Green
+
+        # Set script variables to auto-selected path
+        $script:Root = $destFolder
+        $script:StorageSource = Join-Path $script:Root 'storage\t6'
+        $script:GameSource = Join-Path $script:Root 'steam'
+
+        Write-Host "`n========================================================" -ForegroundColor Green
+        Write-Host " $(T 'DownloadDone')" -ForegroundColor Green
+        Write-Host "$(T 'FolderLabel') $destFolder" -ForegroundColor Cyan
+        Write-Host "========================================================" -ForegroundColor Green
+
+        # Preguntar inmediatamente si desea instalar el mod ahora mismo
+        $yesKey = Get-YesKey
+        Write-Host "`n========================================================" -ForegroundColor Yellow
+        Write-Host " $(T 'WizardActionAskInstall') [$yesKey/N]: " -NoNewline -ForegroundColor Yellow
+        $ans = $null
+        try { $ans = (Read-Host).Trim().ToUpperInvariant() } catch { }
+        if ($ans -eq $yesKey) {
+            Invoke-InstallCommon $script:TargetGame
+            $script:JustInstalledFromDownload = $true
+            Pause-Menu
+        } else {
+            Write-Host "`n  Puedes instalar el mod en cualquier momento desde el menu." -ForegroundColor Gray
+            Start-Sleep -Milliseconds 1200
+        }
+        return $true
+
+    }
+    catch {
+        Write-Host (T 'CleanupOnError') -ForegroundColor DarkGray
+        Remove-DownloadTemp
+        Write-Host "`n$(T 'DownloadError') $($_.Exception.Message)" -ForegroundColor Red
+        Pause-Menu
+        return $false
+    }
+}
+
+function Clear-DownloadTemp {
+    $tempRoot = Get-TempRoot
+    $existingPaths = @(
+        (Join-Path $tempRoot 'ZombiesDeclassified_BETA1.zip'),
+        (Join-Path $tempRoot 'ZombiesDeclassified_BETA1_package')
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and (Test-Path $_) }
+
+    if (-not $existingPaths) {
+        Write-Host (T 'CleanupNone') -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host "`n$(T 'CleanupInfo')" -ForegroundColor Yellow
+    $existingPaths | ForEach-Object { Write-Host " -> $_" -ForegroundColor Gray }
+
+    $yesKey = Get-YesKey
+    $answer = $null
+    try { $answer = (Read-Host "`n$(T 'CleanupAsk') [$yesKey/N]").Trim().ToUpperInvariant() } catch { }
+    if ($answer -ne $yesKey) { return }
+
+    Remove-DownloadTemp
+
+    # Fallback to desktop or script root
+    $autoPath = Find-PackageAuto
+    $fallbackRoot = if ($autoPath) { $autoPath } elseif ($PSScriptRoot -and (Test-Path $PSScriptRoot)) { $PSScriptRoot } else { $script:Root }
+    $script:Root = $fallbackRoot
+    $script:StorageSource = Join-Path $fallbackRoot 'storage\t6'
+    $script:GameSource = Join-Path $fallbackRoot 'steam'
+
+    Write-Host "`n$(T 'CleanupDone')" -ForegroundColor Green
+}
+
+# ── Steam Detection ───────────────────────────────────────────────────────────
+function Get-SteamGames {
+    $roots = [System.Collections.Generic.List[string]]::new()
+    $steamInstalled = $false
+
+    $registryPaths = @(
+        'HKCU:\Software\Valve\Steam',
+        'HKLM:\SOFTWARE\Valve\Steam',
+        'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam'
+    )
+    foreach ($regPath in $registryPaths) {
+        try {
+            $steamPath = (Get-ItemProperty -Path $regPath -Name SteamPath -ErrorAction Stop).SteamPath
+            if (-not [string]::IsNullOrWhiteSpace($steamPath)) {
+                $steamInstalled = $true
+                $roots.Add($steamPath)
+            }
+        }
+        catch { }
+    }
+
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if (-not [string]::IsNullOrWhiteSpace($base)) { $roots.Add("$base\Steam") }
+    }
+
+    $games = [System.Collections.Generic.List[string]]::new()
+    foreach ($root in ($roots | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($root)) { continue }
+        if (Test-Path (Join-Path $root 'steam.exe')) { $steamInstalled = $true }
+
+        $direct = Join-Path $root 'steamapps\common\Call of Duty Black Ops II'
+        if (Test-Path $direct) { $games.Add($direct) }
+
+        $vdf = Join-Path $root 'steamapps\libraryfolders.vdf'
+        if (Test-Path $vdf) {
+            try {
+                $vdfContent = Get-Content -LiteralPath $vdf -Raw -ErrorAction SilentlyContinue
+                $vdfMatches = [regex]::Matches($vdfContent, '"path"\s+"([^"]+)"')
+                foreach ($m in $vdfMatches) {
+                    $library = $m.Groups[1].Value -replace '\\\\', '\'
+                    $candidate = Join-Path $library 'steamapps\common\Call of Duty Black Ops II'
+                    if ((Test-Path $candidate) -and ($games -notcontains $candidate)) {
+                        $games.Add($candidate)
+                    }
+                }
+            }
+            catch { }
+        }
+    }
+    [PSCustomObject]@{
+        Installed = $steamInstalled
+        Games     = @($games | Select-Object -Unique)
+    }
+}
+
+# ── Tree Verification & Installation ──────────────────────────────────────────
+function Test-Tree([string]$source, [string]$destination) {
+    if (-not (Test-Path -LiteralPath $source)) {
+        Write-Host (T 'NoFiles') -ForegroundColor Yellow
+        return $false
+    }
+    $files = @(Get-ChildItem -LiteralPath $source -File -Recurse -ErrorAction SilentlyContinue)
+    if ($files.Count -eq 0) { Write-Host (T 'NoFiles') -ForegroundColor Yellow; return $false }
+
+    # Normalize source path so it always ends without trailing slash
+    $sourceNorm = $source.TrimEnd('\', '/')
+
+    $different = 0
+    $missing = 0
+    for ($i = 0; $i -lt $files.Count; $i++) {
+        $file = $files[$i]
+        # Safe relative path calculation: strip source prefix + exactly one separator
+        $fullNorm = $file.FullName
+        $relative = $fullNorm.Substring($sourceNorm.Length)
+        # Remove exactly one leading backslash (not TrimStart which removes ALL)
+        if ($relative.Length -gt 0 -and $relative[0] -eq '\') {
+            $relative = $relative.Substring(1)
+        }
+        $target = Join-Path $destination $relative
+        if (-not (Test-Path -LiteralPath $target)) {
+            $missing++; $different++
+            Write-Host "`n  MISSING / FALTA / AUSENTE: $relative" -ForegroundColor Red
+        }
+        else {
+            $targetFile = Get-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+            if ($targetFile -and ($targetFile.Length -ne $file.Length)) {
+                $different++
+                Write-Host "`n  DIFFERENT / DIFERENTE: $relative" -ForegroundColor Yellow
+            }
+        }
+        Show-ModernProgressBar -Current ($i + 1) -Total $files.Count -StatusText $relative -BarColor 'Cyan'
+    }
+    if ($different -eq 0) {
+        Write-Host "   [OK] $(T 'AllGood')" -ForegroundColor Green
+        return $true
+    }
+    Write-Host "$(T 'Problems'): $different. Missing / Faltan / Ausentes: $missing" -ForegroundColor Yellow
+    return $false
+}
+
+# ── Process Conflict Detection & Robust Copy ─────────────────────────────────
+function Get-GameProcesses {
+    $targetNames = @(
+        't6zm', 't6mp', 't6sp',
+        'plutonium-bootstrapper-win32', 'plutonium',
+        'BlackOps2', 't6zm.exe', 't6mp.exe', 't6sp.exe'
+    )
+    $found = [System.Collections.Generic.List[System.Diagnostics.Process]]::new()
+    try {
+        $procs = Get-Process -ErrorAction SilentlyContinue
+        foreach ($p in $procs) {
+            foreach ($t in $targetNames) {
+                if ($p.ProcessName -like "*$t*") {
+                    $found.Add($p)
+                    break
+                }
+            }
+        }
+    }
+    catch { }
+    return $found
+}
+
+function Resolve-ProcessConflict {
+    while ($true) {
+        $procs = Get-GameProcesses
+        if ($procs.Count -eq 0) {
+            return $true
+        }
+
+        Write-Host "`n========================================================" -ForegroundColor Red
+        Write-Host " [!] $(T 'ProcessConflictTitle')" -ForegroundColor Red
+        Write-Host "========================================================" -ForegroundColor Red
+        Write-Host (T 'ProcessConflictInfo') -ForegroundColor Yellow
+        foreach ($p in $procs) {
+            Write-Host "  -> $($p.ProcessName) (PID: $($p.Id))" -ForegroundColor Cyan
+        }
+        Write-Host "`n$(T 'ProcessConflictAction')" -ForegroundColor Yellow
+        $action = $null
+        try { $action = (Read-Host (T 'OptionPromptRCM')).Trim().ToUpperInvariant() } catch { }
+
+        switch ($action) {
+            'C' {
+                Write-Host (T 'ClosingProcs') -ForegroundColor DarkCyan
+                foreach ($p in $procs) {
+                    try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch { }
+                }
+                Start-Sleep -Seconds 1
+                Write-Host (T 'ProcessCloseDone') -ForegroundColor Green
+            }
+            'R' {
+                Start-Sleep -Milliseconds 500
+            }
+            'M' {
+                Write-Host "`n$(T 'CopyCancelled')" -ForegroundColor Yellow
+                return $false
+            }
+            default {
+                Write-Host (T 'InvalidOptionShort') -ForegroundColor Red
+            }
+        }
+    }
+}
+
+# ── Exact DLC5 file manifests (scanned from real source) ─────────────────────
+# storage\t6 relative paths  (113 files)
+$script:DLC5_StorageFiles = @(
+    'mods\dlc5\console_zm.log'
+    'mods\dlc5\console_zm.log.000'
+    'mods\dlc5\console_zm.log.001'
+    'mods\dlc5\console_zm.log.002'
+    'mods\dlc5\console_zm.log.003'
+    'mods\dlc5\console_zm.log.004'
+    'mods\dlc5\console_zm.log.005'
+    'mods\dlc5\console_zm.log.006'
+    'mods\dlc5\console_zm.log.007'
+    'mods\dlc5\console_zm.log.008'
+    'mods\dlc5\console_zm.log.009'
+    'mods\dlc5\games_mp.log'
+    'mods\dlc5\missingasset.csv'
+    'mods\dlc5\mod.ff'
+    'mods\dlc5\mod.json'
+    'mods\dlc5\mod_load.ff'
+    'mods\dlc5\mod_load.ipak'
+    'mods\dlc5\mod_patch.ff'
+    'mods\dlc5\zone\en_zm_asylum.ff'
+    'mods\dlc5\zone\en_zm_cosmodrome.ff'
+    'mods\dlc5\zone\en_zm_factory.ff'
+    'mods\dlc5\zone\en_zm_moon.ff'
+    'mods\dlc5\zone\en_zm_pentagon.ff'
+    'mods\dlc5\zone\en_zm_prototype.ff'
+    'mods\dlc5\zone\en_zm_sumpf.ff'
+    'mods\dlc5\zone\en_zm_temple.ff'
+    'mods\dlc5\zone\en_zm_theater.ff'
+    'mods\dlc5\zone\zm_asylum.ff'
+    'mods\dlc5\zone\zm_cosmodrome.ff'
+    'mods\dlc5\zone\zm_factory.ff'
+    'mods\dlc5\zone\zm_moon.ff'
+    'mods\dlc5\zone\zm_pentagon.ff'
+    'mods\dlc5\zone\zm_prototype.ff'
+    'mods\dlc5\zone\zm_sumpf.ff'
+    'mods\dlc5\zone\zm_temple.ff'
+    'mods\dlc5\zone\zm_theater.ff'
+    'raw\clientscripts\mp\zombies\_zm.csc'
+    'raw\maps\mp\animscripts\zm_dog_combat.gsc'
+    'raw\maps\mp\animscripts\zm_dog_stop.gsc'
+    'raw\scripts\zm\zzz_cabinet.gsc'
+    'raw\scripts\zm\zzz_protonames.gsc'
+    'raw\scripts\zm\zzz_protoround.gsc'
+    'raw\scripts\zm\zzz_zm_ambflies.gsc'
+    'raw\scripts\zm\zzz_zm_asylumdoor.gsc'
+    'raw\scripts\zm\zzz_zm_barrelsound.gsc'
+    'raw\scripts\zm\zzz_zm_bowiebuy.gsc'
+    'raw\scripts\zm\zzz_zm_boxstart.gsc'
+    'raw\scripts\zm\zzz_zm_boxthunder.gsc'
+    'raw\scripts\zm\zzz_zm_cheatfree.gsc'
+    'raw\scripts\zm\zzz_zm_deathsong.gsc'
+    'raw\scripts\zm\zzz_zm_dogfog.csc'
+    'raw\scripts\zm\zzz_zm_dognudge.gsc'
+    'raw\scripts\zm\zzz_zm_doorcreak.gsc'
+    'raw\scripts\zm\zzz_zm_eggsong.gsc'
+    'raw\scripts\zm\zzz_zm_exertvoice.gsc'
+    'raw\scripts\zm\zzz_zm_factoryfog.csc'
+    'raw\scripts\zm\zzz_zm_factorypower.csc'
+    'raw\scripts\zm\zzz_zm_factorytelevox.gsc'
+    'raw\scripts\zm\zzz_zm_factoryvox.gsc'
+    'raw\scripts\zm\zzz_zm_favweapon.gsc'
+    'raw\scripts\zm\zzz_zm_gglow.csc'
+    'raw\scripts\zm\zzz_zm_h2_preserve.gsc'
+    'raw\scripts\zm\zzz_zm_hackfix.gsc'
+    'raw\scripts\zm\zzz_zm_howlparity.gsc'
+    'raw\scripts\zm\zzz_zm_location.gsc'
+    'raw\scripts\zm\zzz_zm_monkeymodel.gsc'
+    'raw\scripts\zm\zzz_zm_moonbuzzer.gsc'
+    'raw\scripts\zm\zzz_zm_moonintercom.gsc'
+    'raw\scripts\zm\zzz_zm_moonroundhud.gsc'
+    'raw\scripts\zm\zzz_zm_moonsky.csc'
+    'raw\scripts\zm\zzz_zm_moonsplash.gsc'
+    'raw\scripts\zm\zzz_zm_music.gsc'
+    'raw\scripts\zm\zzz_zm_nmlsprint.gsc'
+    'raw\scripts\zm\zzz_zm_papgive.gsc'
+    'raw\scripts\zm\zzz_zm_powersnd.gsc'
+    'raw\scripts\zm\zzz_zm_quaddelay.gsc'
+    'raw\scripts\zm\zzz_zm_quaddescent.gsc'
+    'raw\scripts\zm\zzz_zm_quadtraverse.gsc'
+    'raw\scripts\zm\zzz_zm_quadvo.gsc'
+    'raw\scripts\zm\zzz_zm_roundfix.gsc'
+    'raw\scripts\zm\zzz_zm_roundwatch.gsc'
+    'raw\scripts\zm\zzz_zm_sfbuoy.gsc'
+    'raw\scripts\zm\zzz_zm_sfdeathsong.gsc'
+    'raw\scripts\zm\zzz_zm_sfparity.gsc'
+    'raw\scripts\zm\zzz_zm_sumpfdoor.gsc'
+    'raw\scripts\zm\zzz_zm_sumpffog.csc'
+    'raw\scripts\zm\zzz_zm_sumpfperkvo.gsc'
+    'raw\scripts\zm\zzz_zm_sumpfriser.gsc'
+    'raw\scripts\zm\zzz_zm_tele.gsc'
+    'raw\scripts\zm\zzz_zm_theaterdoor.gsc'
+    'raw\scripts\zm\zzz_zm_trapsnd.gsc'
+    'raw\scripts\zm\zzz_zm_visioncycle.gsc'
+    'raw\scripts\zm\zzz_zm_watersheet.gsc'
+    'raw\scripts\zm\zzz_zz_zzzzzzzsumpfshuffle.gsc'
+    'raw\scripts\zm\zzz_zz_zzzzzzzzmoonjump.gsc'
+    'raw\scripts\zm\zzz_zz_zzzzzzzzsunfix.gsc'
+    'zone\en_zm_asylum.ff'
+    'zone\en_zm_cosmodrome.ff'
+    'zone\en_zm_factory.ff'
+    'zone\en_zm_moon.ff'
+    'zone\en_zm_pentagon.ff'
+    'zone\en_zm_prototype.ff'
+    'zone\en_zm_sumpf.ff'
+    'zone\en_zm_temple.ff'
+    'zone\en_zm_theater.ff'
+    'zone\zm_asylum.ff'
+    'zone\zm_cosmodrome.ff'
+    'zone\zm_factory.ff'
+    'zone\zm_moon.ff'
+    'zone\zm_pentagon.ff'
+    'zone\zm_prototype.ff'
+    'zone\zm_sumpf.ff'
+    'zone\zm_temple.ff'
+    'zone\zm_theater.ff'
+)
+
+# steam\ relative paths  (47 files)
+$script:DLC5_GameFiles = @(
+    'sound\dlc5_load.all.sabl'
+    'sound\dlc5_load.all.sabs'
+    'sound\zmb_blops_cosmodrome.all.sabl'
+    'sound\zmb_blops_cosmodrome.all.sabs'
+    'sound\zmb_blops_cosmodrome.english.sabs'
+    'sound\zmb_blops_moon.all.sabl'
+    'sound\zmb_blops_moon.all.sabs'
+    'sound\zmb_blops_moon.english.sabl'
+    'sound\zmb_blops_moon.english.sabs'
+    'sound\zmb_blops_pentagon.all.sabl'
+    'sound\zmb_blops_pentagon.all.sabs'
+    'sound\zmb_blops_pentagon.english.sabl'
+    'sound\zmb_blops_pentagon.english.sabs'
+    'sound\zmb_blops_temple.all.sabl'
+    'sound\zmb_blops_temple.all.sabs'
+    'sound\zmb_blops_temple.english.sabl'
+    'sound\zmb_blops_temple.english.sabs'
+    'sound\zmb_blops_theater.all.sabl'
+    'sound\zmb_blops_theater.all.sabs'
+    'sound\zmb_blops_theater.english.sabl'
+    'sound\zmb_blops_theater.english.sabs'
+    'sound\zmb_waw_asylum.all.sabl'
+    'sound\zmb_waw_asylum.all.sabs'
+    'sound\zmb_waw_asylum.english.sabl'
+    'sound\zmb_waw_asylum.english.sabs'
+    'sound\zmb_waw_factory.all.sabl'
+    'sound\zmb_waw_factory.all.sabs'
+    'sound\zmb_waw_factory.english.sabl'
+    'sound\zmb_waw_factory.english.sabs'
+    'sound\zmb_waw_prototype.all.sabl'
+    'sound\zmb_waw_prototype.all.sabs'
+    'sound\zmb_waw_prototype.english.sabl'
+    'sound\zmb_waw_prototype.english.sabs'
+    'sound\zmb_waw_sumpf.all.sabl'
+    'sound\zmb_waw_sumpf.all.sabs'
+    'sound\zmb_waw_sumpf.english.sabl'
+    'sound\zmb_waw_sumpf.english.sabs'
+    'zone\all\mod_load.ipak'
+    'zone\all\zm_asylum.ipak'
+    'zone\all\zm_cosmodrome.ipak'
+    'zone\all\zm_factory.ipak'
+    'zone\all\zm_moon.ipak'
+    'zone\all\zm_pentagon.ipak'
+    'zone\all\zm_prototype.ipak'
+    'zone\all\zm_sumpf.ipak'
+    'zone\all\zm_temple.ipak'
+    'zone\all\zm_theater.ipak'
+)
+
+# ── Check if DLC5 is actually installed (by probing key mod files) ────────────
+function Test-DLC5InstalledInStorage {
+    # Probe 3 key marker files that are unique to the mod
+    $markers = @('mods\dlc5\mod.ff', 'mods\dlc5\mod_patch.ff', 'zone\zm_moon.ff')
+    $found = 0
+    foreach ($m in $markers) {
+        if (Test-Path -LiteralPath (Join-Path $script:PlutoniumStorage $m)) { $found++ }
+    }
+    return ($found -ge 2)
+}
+
+function Test-DLC5InstalledInGame([string]$gameFolder) {
+    if ([string]::IsNullOrWhiteSpace($gameFolder)) { return $false }
+    $markers = @('sound\dlc5_load.all.sabl', 'zone\all\zm_moon.ipak')
+    $found = 0
+    foreach ($m in $markers) {
+        if (Test-Path -LiteralPath (Join-Path $gameFolder $m)) { $found++ }
+    }
+    return ($found -ge 1)
+}
+
+# ── Copy a single file from manifest with retry on conflict ──────────────────
+function Invoke-CopyFileWithRetry([string]$srcFile, [string]$destFile) {
+    while ($true) {
+        try {
+            $destDir = Split-Path $destFile -Parent
+            if (-not (Test-Path $destDir)) {
+                New-Item -ItemType Directory -Force -Path $destDir -ErrorAction Stop | Out-Null
+            }
+            Copy-Item -LiteralPath $srcFile -Destination $destFile -Force -ErrorAction Stop
+            return $true
+        }
+        catch {
+            Write-Host "`n[$(T 'CopyErrorLabel')] $($_.Exception.Message)" -ForegroundColor Red
+            if (-not (Resolve-ProcessConflict)) { return $false }
+            Write-Host "`n$(T 'ProcessCopyFailed')" -ForegroundColor Yellow
+            Write-Host "$(T 'ProcessConflictAction')" -ForegroundColor Yellow
+            $action = $null
+            try { $action = (Read-Host (T 'OptionPromptRM')).Trim().ToUpperInvariant() } catch { }
+            if ($action -eq 'M') {
+                Write-Host "`n$(T 'CopyCancelled')" -ForegroundColor Yellow
+                return $false
+            }
+        }
+    }
+}
+
+# ── Copy a subset of the manifest (filtered by prefix) step by step ──────────
+function Invoke-CopyManifestGroup {
+    param(
+        [string]   $StepLabel,       # e.g. '[PASO 1/5] mods\dlc5'
+        [string[]] $FileList,        # relative paths to copy
+        [string]   $SourceRoot,      # absolute source base
+        [string]   $DestRoot,        # absolute destination base
+        [string]   $FilterPrefix     # only copy files whose rel path starts with this (empty = all)
+    )
+    $subset = if ($FilterPrefix) {
+        @($FileList | Where-Object { $_.StartsWith($FilterPrefix, [System.StringComparison]::OrdinalIgnoreCase) })
+    } else { @($FileList) }
+
+    if ($subset.Count -eq 0) { return $true }
+
+    Write-Host "`n--------------------------------------------------------" -ForegroundColor DarkCyan
+    Write-Host " $StepLabel" -ForegroundColor Cyan
+    Write-Host "   $(T 'Copying'): $DestRoot\$FilterPrefix" -ForegroundColor DarkGray
+    Write-Host "   $($subset.Count) archivos / files" -ForegroundColor DarkGray
+    Write-Host "--------------------------------------------------------" -ForegroundColor DarkCyan
+
+    # Check for running game processes ONCE - but don't abort if ignored, just warn
+    $procs = Get-GameProcesses
+    if ($procs.Count -gt 0) {
+        Write-Host "`n  [!] $(T 'ProcessConflictTitle')" -ForegroundColor Yellow
+        foreach ($p in $procs) { Write-Host "      $($p.ProcessName) (PID: $($p.Id))" -ForegroundColor DarkYellow }
+        Write-Host "  Se intentara copiar de todas formas (los archivos en uso pueden fallar)." -ForegroundColor DarkYellow
+    }
+
+    $failed = [System.Collections.Generic.List[string]]::new()
+
+    for ($i = 0; $i -lt $subset.Count; $i++) {
+        $rel      = $subset[$i]
+        $srcFile  = Join-Path $SourceRoot $rel
+        $destFile = Join-Path $DestRoot   $rel
+
+        if (-not (Test-Path -LiteralPath $srcFile -PathType Leaf)) {
+            Write-Host "   [SKIP - no existe en fuente] $rel" -ForegroundColor DarkGray
+            continue
+        }
+
+        Show-ModernProgressBar -Current ($i + 1) -Total $subset.Count -StatusText $rel -BarColor 'Cyan'
+
+        # Create destination directory if needed
+        $destDir = Split-Path $destFile -Parent
+        if (-not (Test-Path -LiteralPath $destDir)) {
+            try {
+                New-Item -ItemType Directory -Force -Path $destDir -ErrorAction Stop | Out-Null
+            } catch {
+                Write-Host "`n   [ERR DIR] No se pudo crear directorio: $destDir" -ForegroundColor Red
+                Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor DarkRed
+                $failed.Add($rel)
+                continue
+            }
+        }
+
+        # Force-copy the file
+        try {
+            Copy-Item -LiteralPath $srcFile -Destination $destFile -Force -ErrorAction Stop
+        } catch {
+            # If it's a file-in-use error, retry up to 3 times then skip
+            $ok = $false
+            for ($retry = 1; $retry -le 3; $retry++) {
+                Start-Sleep -Milliseconds (500 * $retry)
+                try {
+                    Copy-Item -LiteralPath $srcFile -Destination $destFile -Force -ErrorAction Stop
+                    $ok = $true
+                    break
+                } catch { }
+            }
+            if (-not $ok) {
+                Write-Host "`n   [ERR COPY] $rel" -ForegroundColor Red
+                Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor DarkRed
+                $failed.Add($rel)
+                continue
+            }
+        }
+    }
+
+    if ($failed.Count -gt 0) {
+        Write-Host "`n   [!] $($failed.Count) archivo(s) NO copiado(s) en este grupo:" -ForegroundColor Red
+        foreach ($f in $failed) { Write-Host "       - $f" -ForegroundColor DarkRed }
+        return $false
+    }
+
+    Write-Host "   [OK] $(T 'Complete')" -ForegroundColor Green
+    return $true
+}
+
+function Invoke-VerifyInstallation([string]$game) {
+    if (-not (Ensure-SourceReady)) {
+        Write-Host (T 'NoSource') -ForegroundColor Red
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace($game) -or -not (Test-Path -LiteralPath $game)) {
+        if (-not [string]::IsNullOrWhiteSpace($script:TargetGame) -and (Test-Path -LiteralPath $script:TargetGame)) {
+            $game = $script:TargetGame
+        }
+    }
+    $found = $false
+    $allOk = $true
+    if (-not [string]::IsNullOrWhiteSpace($game) -and (Test-Path $game)) {
+        $found = $true
+        Write-Host "`n$(T 'Verifying') base game: $game" -ForegroundColor Cyan
+        $res = Test-Tree $script:GameSource $game
+        if (-not $res) { $allOk = $false }
+    }
+    if (Test-Path $script:PlutoniumStorage) {
+        $found = $true
+        Write-Host "`n$(T 'Verifying') T6: $script:PlutoniumStorage" -ForegroundColor Cyan
+        $res2 = Test-Tree $script:StorageSource $script:PlutoniumStorage
+        if (-not $res2) { $allOk = $false }
+    }
+    if (-not $found) {
+        Write-Host (T 'None') -ForegroundColor Yellow
+        return $false
+    }
+    elseif ($allOk) {
+        Write-Host "`n$(T 'VerifyComplete')" -ForegroundColor Green
+        return $true
+    }
+    else {
+        # Files are missing or different - offer auto-repair right away
+        Write-Host "`n========================================================" -ForegroundColor Yellow
+        Write-Host " [!] Se detectaron archivos faltantes o con diferencias." -ForegroundColor Yellow
+        Write-Host "========================================================" -ForegroundColor Yellow
+        $yesKey = Get-YesKey
+        Write-Host " Deseas copiar y reparar los archivos faltantes ahora mismo? [$yesKey/N]: " -NoNewline -ForegroundColor Yellow
+        $ans = $null
+        try { $ans = (Read-Host).Trim().ToUpperInvariant() } catch { }
+        if ($ans -eq $yesKey) {
+            Write-Host "`n$(T 'Preparing')" -ForegroundColor Cyan
+            if (-not (Invoke-InstallStorage)) { return $false }
+            if (-not [string]::IsNullOrWhiteSpace($game)) {
+                if (-not (Invoke-InstallGame $game)) { return $false }
+            }
+            Write-Host "`n[OK] $(T 'Complete')" -ForegroundColor Green
+            return $true
+        }
+        return $false
+    }
+}
+
+function Copy-FolderDirect([string]$SourceDir, [string]$TargetDir, [string]$Label) {
+    if (-not (Test-Path -LiteralPath $SourceDir)) {
+        Write-Host "   [AVISO] Carpeta de origen no encontrada: $SourceDir" -ForegroundColor Yellow
+        return $true
+    }
+    New-Item -ItemType Directory -Force -Path $TargetDir -ErrorAction SilentlyContinue | Out-Null
+
+    $allFiles = @(Get-ChildItem -LiteralPath $SourceDir -File -Recurse -Force -ErrorAction SilentlyContinue)
+    if ($allFiles.Count -eq 0) {
+        Write-Host "   [AVISO] No hay archivos en: $SourceDir" -ForegroundColor DarkGray
+        return $true
+    }
+
+    Write-Host "`n--------------------------------------------------------" -ForegroundColor DarkCyan
+    Write-Host " $Label" -ForegroundColor Cyan
+    Write-Host "   Destino: $TargetDir" -ForegroundColor DarkGray
+    Write-Host "   Total: $($allFiles.Count) archivo(s) a transferir" -ForegroundColor DarkGray
+    Write-Host "--------------------------------------------------------" -ForegroundColor DarkCyan
+
+    $srcNorm = $SourceDir.TrimEnd('\', '/')
+    for ($i = 0; $i -lt $allFiles.Count; $i++) {
+        $f = $allFiles[$i]
+        $rel = $f.FullName.Substring($srcNorm.Length).TrimStart('\', '/')
+        $dest = Join-Path $TargetDir $rel
+        $destParent = Split-Path $dest -Parent
+        if (-not (Test-Path -LiteralPath $destParent)) {
+            New-Item -ItemType Directory -Force -Path $destParent -ErrorAction SilentlyContinue | Out-Null
+        }
+        Copy-Item -LiteralPath $f.FullName -Destination $dest -Force -ErrorAction SilentlyContinue
+
+        Show-ModernProgressBar -Current ($i + 1) -Total $allFiles.Count -StatusText $rel -BarColor 'Cyan'
+    }
+    Write-Host "   [OK] Completado exitosamente." -ForegroundColor Green
+    return $true
+}
+
+function Invoke-InstallStorage {
+    # Copies storage\t6 folders -> Plutonium storage\t6 directly (mods\dlc5, raw, zone)
+    $dest = $script:PlutoniumStorage
+    $src  = $script:StorageSource
+    New-Item -ItemType Directory -Force -Path $dest -ErrorAction SilentlyContinue | Out-Null
+
+    Write-Host "`n========================================================" -ForegroundColor Cyan
+    Write-Host "  $(T 'CopyingStorageTo') $dest" -ForegroundColor Cyan
+    Write-Host "  Copiando carpetas completas del Mod a Plutonium..." -ForegroundColor DarkGray
+    Write-Host "========================================================" -ForegroundColor Cyan
+
+    $folders = @(
+        @{ Label = '[PASO 1/3] mods\dlc5'; Source = (Join-Path $src 'mods\dlc5'); Target = (Join-Path $dest 'mods\dlc5') }
+        @{ Label = '[PASO 2/3] raw';       Source = (Join-Path $src 'raw');       Target = (Join-Path $dest 'raw') }
+        @{ Label = '[PASO 3/3] zone';      Source = (Join-Path $src 'zone');      Target = (Join-Path $dest 'zone') }
+    )
+
+    foreach ($f in $folders) {
+        Copy-FolderDirect -SourceDir $f.Source -TargetDir $f.Target -Label $f.Label
+    }
+    return $true
+}
+
+function Invoke-InstallGame([string]$gameFolder) {
+    # Copies steam\ folders -> base game folder directly (sound, zone\all)
+    $src = $script:GameSource
+    New-Item -ItemType Directory -Force -Path $gameFolder -ErrorAction SilentlyContinue | Out-Null
+
+    Write-Host "`n========================================================" -ForegroundColor Cyan
+    Write-Host "  $(T 'CopyingGameTo') $gameFolder" -ForegroundColor Cyan
+    Write-Host "  Copiando carpetas completas del Mod al Juego Base..." -ForegroundColor DarkGray
+    Write-Host "========================================================" -ForegroundColor Cyan
+
+    $folders = @(
+        @{ Label = '[PASO 1/2] sound';    Source = (Join-Path $src 'sound');    Target = (Join-Path $gameFolder 'sound') }
+        @{ Label = '[PASO 2/2] zone\all'; Source = (Join-Path $src 'zone\all'); Target = (Join-Path $gameFolder 'zone\all') }
+    )
+
+    foreach ($f in $folders) {
+        Copy-FolderDirect -SourceDir $f.Source -TargetDir $f.Target -Label $f.Label
+    }
+    return $true
+}
+
+function Invoke-InstallCommon([string]$game) {
+    if (-not (Ensure-SourceReady)) {
+        Write-Host (T 'NoSource') -ForegroundColor Red
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace($game) -or -not (Test-Path -LiteralPath $game)) {
+        if (-not [string]::IsNullOrWhiteSpace($script:TargetGame) -and (Test-Path -LiteralPath $script:TargetGame)) {
+            $game = $script:TargetGame
+        }
+    }
+
+    Write-Host "`n$(T 'Preparing')" -ForegroundColor Cyan
+    if (-not (Invoke-InstallStorage)) { return $false }
+
+    if (-not [string]::IsNullOrWhiteSpace($game) -and (Test-Path -LiteralPath $game)) {
+        if (-not (Invoke-InstallGame $game)) { return $false }
+    }
+
+    Write-Host "`n========================================================" -ForegroundColor Green
+    Write-Host "  $(T 'Complete')" -ForegroundColor Green
+    Write-Host "========================================================" -ForegroundColor Green
+    return $true
+}
+
+# ── Empty subfolder cleanup (only removes folders that became empty after mod deletion) ──
+function Clean-EmptySubDirectories([string]$folder, [string]$rootToPreserve) {
+    if (-not (Test-Path -LiteralPath $folder)) { return }
+    $dirs = @(Get-ChildItem -LiteralPath $folder -Directory -Recurse -ErrorAction SilentlyContinue)
+    $dirs = $dirs | Sort-Object { $_.FullName.Length } -Descending
+    foreach ($d in $dirs) {
+        # Never remove the root folder itself
+        if ($rootToPreserve -and ($d.FullName -ieq $rootToPreserve)) { continue }
+        $subItems = @(Get-ChildItem -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue)
+        if ($subItems.Count -eq 0) {
+            try { Remove-Item -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue } catch { }
+        }
+    }
+}
+
+# ── Uninstall: remove only exact mod files from a target folder, step by step ─
+function Invoke-UninstallGroup {
+    param(
+        [string]   $StepLabel,
+        [string[]] $FileList,
+        [string]   $TargetRoot,
+        [string]   $FilterPrefix
+    )
+    $subset = if ($FilterPrefix) {
+        @($FileList | Where-Object { $_.StartsWith($FilterPrefix, [System.StringComparison]::OrdinalIgnoreCase) })
+    } else { @($FileList) }
+
+    $toDelete = @($subset | Where-Object { Test-Path -LiteralPath (Join-Path $TargetRoot $_) -PathType Leaf })
+    if ($toDelete.Count -eq 0) {
+        Write-Host "   [SKIP] No hay archivos del mod en: $FilterPrefix" -ForegroundColor DarkGray
+        return 0
+    }
+
+    Write-Host "`n  --------------------------------------------------------" -ForegroundColor DarkRed
+    Write-Host "  $StepLabel" -ForegroundColor Red
+    Write-Host "  $($toDelete.Count) archivo(s) a eliminar / file(s) to delete" -ForegroundColor DarkGray
+    Write-Host "  --------------------------------------------------------" -ForegroundColor DarkRed
+
+    $deleted = 0
+    for ($i = 0; $i -lt $toDelete.Count; $i++) {
+        $rel    = $toDelete[$i]
+        $target = Join-Path $TargetRoot $rel
+        try {
+            Remove-Item -LiteralPath $target -Force -ErrorAction Stop
+            $deleted++
+        }
+        catch {
+            Write-Host "`n   [ERR] $rel -> $($_.Exception.Message)" -ForegroundColor Red
+        }
+        Show-ModernProgressBar -Current ($i + 1) -Total $toDelete.Count -StatusText $rel -BarColor 'Red'
+    }
+    Write-Host "   [OK] Eliminados / Deleted: $deleted" -ForegroundColor Green
+    return $deleted
+}
+
+function Invoke-Uninstall {
+    Clear-Host
+    Show-Banner
+    Write-HeaderBox (T 'UninstallTitle') (T 'AuthorText')
+    Write-Host ''
+    Write-Host (T 'UninstallCheckTitle') -ForegroundColor Cyan
+    Write-Host ''
+
+    # ── Detect installed mod files using the exact manifest ───────────────────
+    $plutInstalled  = $false
+    $gameInstalled  = $false
+    $gameFolder     = ''
+
+    # 1. Plutonium storage\t6
+    if (Test-Path -LiteralPath $script:PlutoniumStorage) {
+        $foundPlut = @($script:DLC5_StorageFiles | Where-Object {
+            Test-Path -LiteralPath (Join-Path $script:PlutoniumStorage $_)
+        })
+        if ($foundPlut.Count -gt 0) {
+            $plutInstalled = $true
+            Write-Host ((T 'UninstallFoundPlut') + " $script:PlutoniumStorage ($($foundPlut.Count) archivos / files)") -ForegroundColor Green
+        }
+    }
+
+    # 2. Game folder (TargetGame or Steam)
+    $possibleGame = if (-not [string]::IsNullOrWhiteSpace($script:TargetGame)) { $script:TargetGame } else { $script:SteamGame }
+    if ([string]::IsNullOrWhiteSpace($possibleGame)) {
+        $steamInfo = Get-SteamGames
+        $possibleGame = @($steamInfo.Games) | Select-Object -First 1
+    }
+    if (-not [string]::IsNullOrWhiteSpace($possibleGame) -and (Test-Path -LiteralPath $possibleGame)) {
+        $foundGame = @($script:DLC5_GameFiles | Where-Object {
+            Test-Path -LiteralPath (Join-Path $possibleGame $_)
+        })
+        if ($foundGame.Count -gt 0) {
+            $gameInstalled = $true
+            $gameFolder    = $possibleGame
+            Write-Host ((T 'UninstallFoundGame') + " $gameFolder ($($foundGame.Count) archivos / files)") -ForegroundColor Green
+        }
+    }
+
+    # 3. Manual game folder selection if not auto-found
+    if (-not $gameInstalled) {
+        $yesKey   = Get-YesKey
+        $ansManual = $null
+        try { $ansManual = (Read-Host "`n$(T 'UninstallAskManualGame') [$yesKey/N]").Trim().ToUpperInvariant() } catch { }
+        if ($ansManual -eq $yesKey) {
+            $selected = Select-Folder (T 'Game')
+            if (-not [string]::IsNullOrWhiteSpace($selected) -and (Test-Path -LiteralPath $selected)) {
+                $foundManual = @($script:DLC5_GameFiles | Where-Object {
+                    Test-Path -LiteralPath (Join-Path $selected $_)
+                })
+                if ($foundManual.Count -gt 0) {
+                    $gameInstalled = $true
+                    $gameFolder    = $selected
+                    Write-Host "`n$((T 'UninstallFoundGame')) $gameFolder ($($foundManual.Count) archivos / files)" -ForegroundColor Green
+                } else {
+                    Write-Host "`n$(T 'UninstallNoGameFiles')" -ForegroundColor Yellow
+                }
+            }
+        }
+    }
+
+    if (-not $plutInstalled -and -not $gameInstalled) {
+        Write-Host "`n$(T 'UninstallNone')" -ForegroundColor Yellow
+        Pause-Menu
+        return
+    }
+
+    Write-Host ''
+    Write-Host '========================================================' -ForegroundColor Red
+    Write-Host ' [!] ' -NoNewline -ForegroundColor Red
+    Write-Host (T 'UninstallTitle') -ForegroundColor Red
+    Write-Host '========================================================' -ForegroundColor Red
+    Write-Host ''
+
+    $didAnything = $false
+    $yesKey      = Get-YesKey
+
+    # ── Remove Plutonium storage files step by step ───────────────────────────
+    if ($plutInstalled) {
+        $ans = $null
+        try { $ans = (Read-Host "`n$(T 'UninstallAskPlut') [$yesKey/N]").Trim().ToUpperInvariant() } catch { }
+        if ($ans -eq $yesKey) {
+            Write-Host "`n$(T 'UninstallDeleting') $script:PlutoniumStorage" -ForegroundColor DarkRed
+            Write-Host '  (Solo archivos del mod / Mod files only - otros archivos NO se tocan)' -ForegroundColor DarkGray
+            $totalPlut = 0
+
+            $storageGroups = @(
+                @{ Label = '[1/5] mods\dlc5 (archivos del mod)';       Prefix = 'mods\dlc5' }
+                @{ Label = '[2/5] raw\clientscripts';                   Prefix = 'raw\clientscripts' }
+                @{ Label = '[3/5] raw\maps\mp\animscripts';             Prefix = 'raw\maps' }
+                @{ Label = '[4/5] raw\scripts\zm (scripts)';           Prefix = 'raw\scripts' }
+                @{ Label = '[5/5] zone (archivos .ff de mapas)';        Prefix = 'zone' }
+            )
+            foreach ($g in $storageGroups) {
+                $totalPlut += Invoke-UninstallGroup `
+                    -StepLabel    $g.Label `
+                    -FileList     $script:DLC5_StorageFiles `
+                    -TargetRoot   $script:PlutoniumStorage `
+                    -FilterPrefix $g.Prefix
+            }
+
+            # Remove empty mod-created subfolders only (never t6 root itself)
+            Clean-EmptySubDirectories (Join-Path $script:PlutoniumStorage 'mods') $script:PlutoniumStorage
+            Clean-EmptySubDirectories (Join-Path $script:PlutoniumStorage 'raw')  $script:PlutoniumStorage
+            Clean-EmptySubDirectories (Join-Path $script:PlutoniumStorage 'zone') $script:PlutoniumStorage
+
+            Write-Host "`n  Total eliminados Plutonium: $totalPlut (carpeta t6 preservada intacta)." -ForegroundColor Green
+            $didAnything = $true
+        }
+    }
+
+    # ── Remove game files step by step ───────────────────────────────────────
+    if ($gameInstalled) {
+        $ans = $null
+        try { $ans = (Read-Host "`n$(T 'UninstallAskGame') [$yesKey/N]").Trim().ToUpperInvariant() } catch { }
+        if ($ans -eq $yesKey) {
+            Write-Host "`n$(T 'UninstallDeleting') $gameFolder" -ForegroundColor DarkRed
+            Write-Host '  (Solo archivos del mod / Mod files only - otros archivos NO se tocan)' -ForegroundColor DarkGray
+            $totalGame = 0
+
+            $gameGroups = @(
+                @{ Label = '[1/2] sound (archivos de audio)';   Prefix = 'sound' }
+                @{ Label = '[2/2] zone\all (archivos .ipak)';   Prefix = 'zone\all' }
+            )
+            foreach ($g in $gameGroups) {
+                $totalGame += Invoke-UninstallGroup `
+                    -StepLabel    $g.Label `
+                    -FileList     $script:DLC5_GameFiles `
+                    -TargetRoot   $gameFolder `
+                    -FilterPrefix $g.Prefix
+            }
+
+            # Remove empty mod-created subfolders only
+            Clean-EmptySubDirectories (Join-Path $gameFolder 'sound') $gameFolder
+            Clean-EmptySubDirectories (Join-Path $gameFolder 'zone')  $gameFolder
+
+            Write-Host "`n  Total eliminados juego: $totalGame." -ForegroundColor Green
+            $didAnything = $true
+        }
+    }
+
+    Write-Host ''
+    if ($didAnything) {
+        Write-Host (T 'UninstallComplete') -ForegroundColor Green
+    } else {
+        Write-Host (T 'UninstallCancelled') -ForegroundColor Yellow
+    }
+    Pause-Menu
+}
+
+# ── UI & Menu ─────────────────────────────────────────────────────────────────
+function Set-Language {
+    Clear-Host
+    Write-Host (T 'LangMenuHeader') -ForegroundColor Cyan
+    Write-Host '[1] Espanol'
+    Write-Host '[2] English'
+    Write-Host '[3] Portugues'
+    $choice = $null
+    try { $choice = (Read-Host (T 'Select')).Trim() } catch { }
+    switch ($choice) {
+        '1' { $script:Language = 'ES' }
+        '2' { $script:Language = 'EN' }
+        '3' { $script:Language = 'PT' }
+    }
+}
+
+function Show-Banner {
+    Write-Host ' _     _ _   _   _                      _      _____           _ ' -ForegroundColor Cyan
+    Write-Host '| |   (_) | | | | |                    | |    |_   _|         | |' -ForegroundColor Cyan
+    Write-Host '| |    _| |_| |_| | ___  __ _  ___   __| |___   | | ___   ___ | |' -ForegroundColor Cyan
+    Write-Host '| |   | | __| __| |/ _ \/ _` |/ _ \ / _` / __|  | |/ _ \ / _ \| |' -ForegroundColor Cyan
+    Write-Host '| |___| | |_| |_| |  __/ (_| | (_) | (_| \__ \  | | (_) | (_) | |' -ForegroundColor Cyan
+    Write-Host '|_____|_|\__|\__|_|\___|\__, |\___/ \__,_|___/  \_/\___/ \___/|_|' -ForegroundColor Cyan
+    Write-Host '                         __/ |                       [ DLC 5 ]    ' -ForegroundColor Cyan
+    Write-Host '                        |___/                             v2.0.0  ' -ForegroundColor Cyan
+}
+
+function Write-HeaderBox {
+    param([string]$line1Text, [string]$line2Text)
+    $inner = 64
+    $border = '+' + ('-' * $inner) + '+'
+
+    $p1Left = [math]::Max(0, [math]::Floor(($inner - $line1Text.Length) / 2))
+    $p1Right = [math]::Max(0, $inner - $line1Text.Length - $p1Left)
+    $row1 = '|' + (' ' * $p1Left) + $line1Text + (' ' * $p1Right) + '|'
+
+    $p2Left = [math]::Max(0, [math]::Floor(($inner - $line2Text.Length) / 2))
+    $p2Right = [math]::Max(0, $inner - $line2Text.Length - $p2Left)
+    $row2 = '|' + (' ' * $p2Left) + $line2Text + (' ' * $p2Right) + '|'
+
+    Write-Host $border -ForegroundColor DarkCyan
+    Write-Host $row1   -ForegroundColor Cyan
+    Write-Host $row2   -ForegroundColor DarkCyan
+    Write-Host $border -ForegroundColor DarkCyan
+}
+
+function Show-About {
+    Clear-Host
+    Show-Banner
+    Write-HeaderBox (T 'Subtitle') ((T 'AuthorText') + "  |  v$($script:AppVersion)")
+    Write-Host ''
+    Write-Host (T 'ModDescTitle') -ForegroundColor Green
+    Write-Host (T 'ModDescText')
+    Write-Host ''
+    Write-Host (T 'ProgressTitle') -ForegroundColor Yellow
+    Write-Host ('  ' + (T 'MapHeader').PadRight(22) + (T 'CompletionHeader')) -ForegroundColor Gray
+    Write-Host '  ------------------------------------' -ForegroundColor Gray
+    Write-Host '  Nacht der Untoten     ' -NoNewline; Write-Host '[95%] [##########]' -ForegroundColor Green
+    Write-Host '  Verruckt              ' -NoNewline; Write-Host '[95%] [##########]' -ForegroundColor Green
+    Write-Host '  Shi No Numa           ' -NoNewline; Write-Host '[95%] [##########]' -ForegroundColor Green
+    Write-Host '  Der Riese             ' -NoNewline; Write-Host '[95%] [##########]' -ForegroundColor Green
+    Write-Host '  Kino der Toten        ' -NoNewline; Write-Host '[95%] [##########]' -ForegroundColor Green
+    Write-Host '  "Five"                ' -NoNewline; Write-Host '[80%] [########  ]' -ForegroundColor Yellow
+    Write-Host '  Ascension             ' -NoNewline; Write-Host '[80%] [########  ]' -ForegroundColor Yellow
+    Write-Host '  Shangri-La            ' -NoNewline; Write-Host '[80%] [########  ]' -ForegroundColor Yellow
+    Write-Host '  Moon                  ' -NoNewline; Write-Host '[80%] [########  ]' -ForegroundColor Yellow
+    Write-Host '  Call of the Dead      ' -NoNewline; Write-Host '[50%] [#####     ]' -ForegroundColor DarkYellow
+    Write-Host ''
+    Write-Host (T 'ReleaseDatesTitle') -ForegroundColor Yellow
+    Write-Host ('  ' + (T 'ReleaseDate1'))
+    Write-Host ('  ' + (T 'ReleaseDate2'))
+    Write-Host ''
+    Write-Host (T 'ReqsTitle') -ForegroundColor Yellow
+    Write-Host ('  ' + (T 'ReqsText'))
+    Write-Host ''
+    Write-Host (T 'RepoAboutTitle') -ForegroundColor Yellow
+    Write-Host (T 'RepoAboutText')
+    Write-Host ''
+    Write-Host (T 'BugsTitle') -ForegroundColor Yellow
+    Write-Host ('  ' + (T 'BugsIssues'))
+    Write-Host ('  ' + (T 'BugsDiscord'))
+    Write-Host ''
+    Write-Host '+------------------------------------------------------------------+' -ForegroundColor Magenta
+    $credTitle = (T 'CreditsTitle')
+    $credPadL = [math]::Max(0, [math]::Floor((64 - $credTitle.Length) / 2))
+    $credPadR = [math]::Max(0, 64 - $credTitle.Length - $credPadL)
+    Write-Host ('|' + (' ' * $credPadL) + $credTitle + (' ' * $credPadR) + '|') -ForegroundColor Magenta
+    Write-Host '+------------------------------------------------------------------+' -ForegroundColor Magenta
+    Write-Host ('  ' + (T 'CreditsProgramAuthor').PadRight(18)) -NoNewline; Write-Host 'andr3x_cl' -ForegroundColor Cyan
+    Write-Host ('  ' + (T 'CreditsProgramAuthor').PadRight(18)) -NoNewline; Write-Host 'andr3x_cl (Littlegods)' -ForegroundColor Cyan
+    Write-Host ('  ' + (T 'CreditsGitHub').PadRight(18)) -NoNewline; Write-Host 'https://github.com/andr3xcl/' -ForegroundColor Cyan
+    Write-Host ('  ' + (T 'CreditsCommunity').PadRight(18)) -NoNewline; Write-Host 'Littlegods Project' -ForegroundColor Cyan
+    Write-Host ('  ' + (T 'CreditsDiscord').PadRight(18)) -NoNewline; Write-Host ' https://discord.littlegods.space' -ForegroundColor Cyan
+    Write-Host '+------------------------------------------------------------------+' -ForegroundColor Magenta
+    Pause-Menu
+}
+
+# ── WIZARD STEP 0: Language Selection ─────────────────────────────────────────
+function Step-SelectLanguage {
+    Clear-Host
+    Show-Banner
+    Write-Host "`n========================================================" -ForegroundColor Cyan
+    Write-Host " SELECT LANGUAGE / SELECCIONAR IDIOMA" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "`n  [1] Espanol" -ForegroundColor White
+    Write-Host "  [2] English" -ForegroundColor White
+    Write-Host "  [3] Portugues" -ForegroundColor White
+    
+    $choice = $null
+    while ($choice -notmatch '^[1-3]$') {
+        try { $choice = (Read-Host "`n  Selecciona / Select [1-3]").Trim() } catch { }
+    }
+    switch ($choice) {
+        '1' { $script:Language = 'ES' }
+        '2' { $script:Language = 'EN' }
+        '3' { $script:Language = 'PT' }
+    }
+}
+
+# ── WIZARD STEP 1: Game Version Selection (Steam or Alternative) ──────────────
+function Step-SelectGameVersion {
+    while ($true) {
+        Clear-Host
+        Show-Banner
+        Write-HeaderBox (T 'WizardWelcome') (T 'AuthorText')
+
+        Write-Host "`n========================================================" -ForegroundColor Cyan
+        Write-Host " $(T 'WizardStepGame')" -ForegroundColor Cyan
+        Write-Host "========================================================" -ForegroundColor Cyan
+        Write-Host "`n $(T 'WizardGameModePrompt')" -ForegroundColor Yellow
+        Write-Host "`n  [1] $(T 'WizardOptionSteam')" -ForegroundColor White
+        Write-Host "  [2] $(T 'WizardOptionAlt')" -ForegroundColor White
+        Write-Host "  [9] $(T 'About')" -ForegroundColor Magenta
+        Write-Host "  [3] $(T 'Exit')" -ForegroundColor DarkGray
+
+        $mode = $null
+        while ($mode -notmatch '^[1-39]$') {
+            try { $mode = (Read-Host "`n$(T 'Select') [1/2/3/9]").Trim() } catch { }
+        }
+
+        if ($mode -eq '9') {
+            Show-About
+            continue
+        }
+
+        if ($mode -eq '3') { return $false }
+
+        $script:TargetGame = $null
+        if ($mode -eq '1') {
+            # Steam original mode
+            $steamInfo = Get-SteamGames
+            $gamePath = @($steamInfo.Games) | Select-Object -First 1
+            if (-not [string]::IsNullOrWhiteSpace($gamePath) -and (Test-Path -LiteralPath $gamePath)) {
+                $script:TargetGame = $gamePath
+                Write-Host "`n$(T 'WizardSteamAutoFound') $gamePath" -ForegroundColor Green
+                Start-Sleep -Milliseconds 900
+                return $true
+            } else {
+                Write-Host "`n$(T 'WizardSteamNotFound')" -ForegroundColor Yellow
+                $yesKey = Get-YesKey
+                $ask = $null
+                try { $ask = (Read-Host "`n$(T 'WizardSteamAskManual') [$yesKey/N]").Trim().ToUpperInvariant() } catch { }
+                if ($ask -eq $yesKey) {
+                    $selected = Select-Folder (T 'BaseGame')
+                    if (-not [string]::IsNullOrWhiteSpace($selected) -and (Test-Path -LiteralPath $selected)) {
+                        $script:TargetGame = $selected
+                        Write-Host "`nBlack Ops II: $selected" -ForegroundColor Green
+                        Start-Sleep -Milliseconds 800
+                        return $true
+                    }
+                }
+                Write-Host "`n$(T 'CancelFolderReturn')" -ForegroundColor Yellow
+                Start-Sleep -Milliseconds 800
+                return $false
+            }
+        } else {
+            # Alternative mode
+            Write-Host "`n$(T 'WizardAltFolderPrompt')" -ForegroundColor Cyan
+            Write-Host "$(T 'GameHelp')" -ForegroundColor Gray
+            $selected = Select-Folder (T 'Game')
+            if (-not [string]::IsNullOrWhiteSpace($selected) -and (Test-Path -LiteralPath $selected)) {
+                $script:TargetGame = $selected
+                Write-Host "`nJuego / Game: $selected" -ForegroundColor Green
+                Start-Sleep -Milliseconds 800
+                return $true
+            } else {
+                Write-Host "`n$(T 'CancelFolderReturn')" -ForegroundColor Yellow
+                Start-Sleep -Milliseconds 800
+                return $false
+            }
+        }
+    }
+}
+
+# ── WIZARD STEP 2 & 3: Check System Status & Ensure Mod Package ───────────────
+function Step-EnsurePackageAndCheckStatus {
+    while ($true) {
+        Clear-Host
+        Show-Banner
+        Write-HeaderBox (T 'WizardWelcome') (T 'AuthorText')
+
+        Write-Host "`n========================================================" -ForegroundColor Cyan
+        Write-Host " $(T 'WizardStepStatus')" -ForegroundColor Cyan
+        Write-Host "========================================================" -ForegroundColor Cyan
+
+        $plutInstalled = Test-DLC5InstalledInStorage
+        $gameInstalled = Test-DLC5InstalledInGame $script:TargetGame
+
+        $plutText = if ($plutInstalled) { (T 'WizardStatusInstalled') } else { (T 'WizardStatusNotInst') }
+        $plutColor = if ($plutInstalled) { 'Green' } else { 'Yellow' }
+        Write-Host "`n  * $(T 'WizardStatusPlutMod') " -NoNewline -ForegroundColor Gray
+        Write-Host "[$plutText]" -ForegroundColor $plutColor
+
+        $gameText = if ($gameInstalled) { (T 'WizardStatusInstalled') } else { (T 'WizardStatusNotInst') }
+        $gameColor = if ($gameInstalled) { 'Green' } else { 'Yellow' }
+        Write-Host "  * $(T 'WizardStatusGameMod') " -NoNewline -ForegroundColor Gray
+        Write-Host "[$gameText] ($($script:TargetGame))" -ForegroundColor $gameColor
+
+        # Auto detect package
+        $pkgPath = Find-PackageAuto
+        if ($pkgPath) {
+            Write-Host "  * $(T 'WizardStatusPkg') " -NoNewline -ForegroundColor Gray
+            Write-Host "[OK] $pkgPath" -ForegroundColor Green
+            $script:Root = $pkgPath
+            $script:StorageSource = Join-Path $pkgPath 'storage\t6'
+            $script:GameSource = Join-Path $pkgPath 'steam'
+            return $true
+        } else {
+            Write-Host "  * $(T 'WizardStatusPkg') " -NoNewline -ForegroundColor Gray
+            Write-Host "[$(T 'WizardPkgNotDetected')]" -ForegroundColor Yellow
+        }
+
+        # If package not found, ask user to download or select
+        Write-Host "`n========================================================" -ForegroundColor Yellow
+        Write-Host " $(T 'WizardStepPackage')" -ForegroundColor Yellow
+        Write-Host "========================================================" -ForegroundColor Yellow
+        Write-Host "`n $(T 'WizardPkgPrompt')" -ForegroundColor Yellow
+        Write-Host "`n  [1] $(T 'WizardPkgOptDownload')" -ForegroundColor White
+        Write-Host "  [2] $(T 'WizardPkgOptSelect')" -ForegroundColor White
+        Write-Host "  [9] $(T 'About')" -ForegroundColor Magenta
+        Write-Host "  [3] $(T 'Exit')" -ForegroundColor DarkGray
+
+        $pkgChoice = $null
+        while ($pkgChoice -notmatch '^[1-39]$') {
+            try { $pkgChoice = (Read-Host "`n$(T 'Select') [1/2/3/9]").Trim() } catch { }
+        }
+
+        if ($pkgChoice -eq '9') {
+            Show-About
+            continue
+        }
+
+        switch ($pkgChoice) {
+            '1' {
+                Clear-Host
+                $ok = Invoke-DownloadPackage
+                if (-not $ok) { return $false }
+                return $true
+            }
+            '2' {
+                Write-Host "`n$(T 'Package')" -ForegroundColor Cyan
+                Write-Host "$(T 'PackageHelp')" -ForegroundColor Gray
+                $selected = Select-Folder (T 'Package')
+                if ([string]::IsNullOrWhiteSpace($selected) -or -not (Test-PackageFolder $selected)) {
+                    Write-Host "`n$(T 'InvalidPackage')" -ForegroundColor Red
+                    Start-Sleep -Milliseconds 1200
+                    return $false
+                }
+                $script:Root = $selected
+                $script:StorageSource = Join-Path $selected 'storage\t6'
+                $script:GameSource = Join-Path $selected 'steam'
+                Write-Host "`n$(T 'PackageFound') $selected" -ForegroundColor Green
+                Start-Sleep -Milliseconds 800
+                return $true
+            }
+            '3' {
+                return $false
+            }
+        }
+    }
+}
+
+# ── WIZARD STEP 4: Install, Repair, or Uninstall ──────────────────────────────
+function Step-InstallOrManage {
+    $script:JustInstalledFromDownload = $false
+
+    while ($true) {
+        Clear-Host
+        Show-Banner
+        Write-HeaderBox (T 'WizardWelcome') (T 'AuthorText')
+
+        Write-Host "`n========================================================" -ForegroundColor Cyan
+        Write-Host " $(T 'WizardStepAction')" -ForegroundColor Cyan
+        Write-Host "========================================================" -ForegroundColor Cyan
+
+        # Auto-detect game if not set
+        if ([string]::IsNullOrWhiteSpace($script:TargetGame) -or -not (Test-Path -LiteralPath $script:TargetGame)) {
+            $steamInfo = Get-SteamGames
+            foreach ($g in $steamInfo.Games) {
+                if (Test-Path -LiteralPath $g) {
+                    if (Test-DLC5InstalledInGame $g) {
+                        $script:TargetGame = $g
+                        break
+                    }
+                    if ([string]::IsNullOrWhiteSpace($script:TargetGame)) {
+                        $script:TargetGame = $g
+                    }
+                }
+            }
+        }
+
+        # Auto-detect package if not set
+        if (-not (Test-SourceReady)) {
+            $pkg = Find-PackageAuto
+            if ($pkg) {
+                $script:Root = $pkg
+                $script:StorageSource = Join-Path $pkg 'storage\t6'
+                $script:GameSource = Join-Path $pkg 'steam'
+            }
+        }
+
+        $plutInstalled = Test-DLC5InstalledInStorage
+        $gameInstalled = if (-not [string]::IsNullOrWhiteSpace($script:TargetGame)) { Test-DLC5InstalledInGame $script:TargetGame } else { $false }
+        $isInstalled = ($plutInstalled -or $gameInstalled)
+
+        if ($isInstalled) {
+            Write-Host "`n $(T 'WizardActionAlready')" -ForegroundColor Yellow
+            Write-Host "`n  [1] $(T 'WizardActionRepair')" -ForegroundColor White
+            Write-Host "  [2] $(T 'WizardActionUninstall')" -ForegroundColor DarkRed
+            Write-Host "  [3] $(T 'WizardActionVerify')" -ForegroundColor White
+            Write-Host "  [9] $(T 'About')" -ForegroundColor Magenta
+            Write-Host "  [4] $(T 'WizardActionExit')" -ForegroundColor DarkGray
+
+            $act = $null
+            while ($act -notmatch '^[1-49]$') {
+                try { $act = (Read-Host "`n$(T 'Select') [1-4/9]").Trim() } catch { }
+            }
+
+            if ($act -eq '9') {
+                Show-About
+                continue
+            }
+
+            switch ($act) {
+                '1' {
+                    if (-not (Ensure-SourceReady)) {
+                        Write-Host "`n$(T 'NoSource')" -ForegroundColor Red
+                        Pause-Menu
+                        continue
+                    }
+                    if ([string]::IsNullOrWhiteSpace($script:TargetGame) -or -not (Test-Path -LiteralPath $script:TargetGame)) {
+                        $gOk = Step-SelectGameVersion
+                        if (-not $gOk) { continue }
+                    }
+                    Invoke-InstallCommon $script:TargetGame
+                    Pause-Menu
+                    continue
+                }
+                '2' {
+                    Invoke-Uninstall
+                    continue
+                }
+                '3' {
+                    if (-not (Ensure-SourceReady)) {
+                        Write-Host "`n$(T 'NoSource')" -ForegroundColor Red
+                        Pause-Menu
+                        continue
+                    }
+                    Invoke-VerifyInstallation $script:TargetGame
+                    Pause-Menu
+                    continue
+                }
+                '4' {
+                    return
+                }
+            }
+        } else {
+            # Mod not installed yet
+            $yesKey = Get-YesKey
+            Write-Host "`n $(T 'WizardActionAskInstall') [$yesKey/N] (o [9] $(T 'About')): " -NoNewline -ForegroundColor Yellow
+            $ans = $null
+            try { $ans = (Read-Host).Trim().ToUpperInvariant() } catch { }
+            if ($ans -eq '9') {
+                Show-About
+                continue
+            }
+            if ($ans -eq $yesKey) {
+                if (-not (Ensure-SourceReady)) {
+                    Write-Host "`n$(T 'NoSource')" -ForegroundColor Red
+                    Pause-Menu
+                    continue
+                }
+                if ([string]::IsNullOrWhiteSpace($script:TargetGame) -or -not (Test-Path -LiteralPath $script:TargetGame)) {
+                    $gOk = Step-SelectGameVersion
+                    if (-not $gOk) { continue }
+                }
+                Invoke-InstallCommon $script:TargetGame
+                Pause-Menu
+                continue
+            } else {
+                Write-Host "`n$(T 'UninstallCancelled')" -ForegroundColor Yellow
+                Start-Sleep -Milliseconds 800
+                return
+            }
+        }
+    }
+}
+
+# ── Wizard Controller ─────────────────────────────────────────────────────────
+function Start-Wizard {
+    # Paso 0: Idioma al iniciar
+    Step-SelectLanguage
+
+    # Auto-detectar juego (Steam o rutas comunes)
+    if ([string]::IsNullOrWhiteSpace($script:TargetGame)) {
+        $steamInfo = Get-SteamGames
+        foreach ($g in $steamInfo.Games) {
+            if (Test-Path -LiteralPath $g) {
+                if (Test-DLC5InstalledInGame $g) {
+                    $script:TargetGame = $g
+                    break
+                }
+                if ([string]::IsNullOrWhiteSpace($script:TargetGame)) {
+                    $script:TargetGame = $g
+                }
+            }
+        }
+    }
+
+    # Auto-detectar paquete en Escritorio o directorio del script
+    $pkg = Find-PackageAuto
+    if ($pkg) {
+        $script:Root = $pkg
+        $script:StorageSource = Join-Path $pkg 'storage\t6'
+        $script:GameSource = Join-Path $pkg 'steam'
+    }
+
+    # Comprobar si el mod YA está instalado
+    $plutInstalled = Test-DLC5InstalledInStorage
+    $gameInstalled = if (-not [string]::IsNullOrWhiteSpace($script:TargetGame)) { Test-DLC5InstalledInGame $script:TargetGame } else { $false }
+
+    if ($plutInstalled -or $gameInstalled) {
+        # Si ya está instalado, entrar DIRECTAMENTE al menú de gestión (verificar, desinstalar, reparar)
+        Step-InstallOrManage
+        return
+    }
+
+    # Si NO está instalado, ejecutar el asistente de instalación paso a paso
+    while ($true) {
+        # Paso 1: Version de juego (Steam o Alternativo)
+        $step1Ok = Step-SelectGameVersion
+        if (-not $step1Ok) {
+            if (Confirm-Exit) { break } else { continue }
+        }
+
+        # Paso 2 y 3: Deteccion de estado del sistema y asegurar paquete
+        $step2Ok = Step-EnsurePackageAndCheckStatus
+        if (-not $step2Ok) {
+            if (Confirm-Exit) { break } else { continue }
+        }
+
+        # Paso 4: Instalar y quedar dentro del menú de gestión
+        Step-InstallOrManage
+        break
+    }
+}
+
+# ── Main Entry ────────────────────────────────────────────────────────────────
+$cancelHandler = [ConsoleCancelEventHandler] {
+    param($sender, $eventArgs)
+    $eventArgs.Cancel = $true
+    Write-Host ("`n" + (T 'Interrupt')) -ForegroundColor Yellow
+}
+[Console]::add_CancelKeyPress($cancelHandler)
+
+Start-Wizard

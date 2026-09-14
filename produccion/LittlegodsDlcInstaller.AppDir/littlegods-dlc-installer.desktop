@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Littlegods DLC Installer
+Exec=LittlegodsDlcInstallerGui
+Icon=littlegods-dlc-installer
+Categories=Game;
+Terminal=false
