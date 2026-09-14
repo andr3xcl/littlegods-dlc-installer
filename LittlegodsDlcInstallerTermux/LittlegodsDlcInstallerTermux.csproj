@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../LittlegodsDlcInstallerGui/InstallerService.cs" Link="InstallerService.cs" />
+    <Compile Include="../LittlegodsDlcInstallerGui/Beta1Manifest.cs" Link="Beta1Manifest.cs" />
+    <Compile Include="../LittlegodsDlcInstallerGui/ManifestParser.cs" Link="ManifestParser.cs" />
+    <Compile Include="../LittlegodsDlcInstallerGui/TermuxProgram.cs" Link="Program.cs" />
+  </ItemGroup>
+</Project>
